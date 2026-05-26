@@ -8,6 +8,7 @@ Cross-platform: **Arch Linux (Omarchy)** and **macOS (Apple Silicon)**.
 - **Zsh** config (`.zshrc`) — templated per-OS: PATH, history, completions, tool init
 - **Starship** prompt (`.config/starship.toml`)
 - **Tmux** config + tokyo-night theme (`.config/tmux/`)
+- **Ghostty** terminal config (`.config/ghostty/`) — templated per-OS (Linux-only GTK/epoll keys gated)
 - **Zsh plugins** via [Antidote](https://github.com/mattmc3/antidote) — auto-bootstraps on
   first launch:
   - [`zsh-autosuggestions`](https://github.com/zsh-users/zsh-autosuggestions) — fish-like history suggestions
@@ -28,6 +29,7 @@ Cross-platform: **Arch Linux (Omarchy)** and **macOS (Apple Silicon)**.
 | `tmux` | recommended | `t`, `tdl`, `tsl` layouts |
 | `neovim` | recommended | `n`, `eff` editor |
 | `gum` | recommended | `gd` worktree prompt |
+| `ghostty` | optional | terminal emulator (only if you use the tracked ghostty config) |
 | JetBrainsMono Nerd Font | recommended | prompt & terminal glyphs |
 
 Everything in `.zshrc` is guarded with `command -v`, so the config applies and loads
@@ -42,7 +44,8 @@ cleanly even if the recommended tools are missing — you just don't get that fe
 ```bash
 sudo pacman -S --needed \
   zsh chezmoi git \
-  starship mise zoxide fzf bat eza tmux neovim gum
+  starship mise zoxide fzf bat eza tmux neovim gum \
+  ghostty
 
 chezmoi init --apply zarnautovic/dotfiles
 chsh -s /usr/bin/zsh        # then log out and back in
@@ -59,7 +62,7 @@ chsh -s /usr/bin/zsh        # then log out and back in
 brew install \
   chezmoi git \
   starship mise zoxide fzf bat eza tmux neovim gum
-brew install --cask font-jetbrains-mono-nerd-font
+brew install --cask ghostty font-jetbrains-mono-nerd-font
 
 chezmoi init --apply zarnautovic/dotfiles
 ```
