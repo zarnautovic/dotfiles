@@ -1,0 +1,4 @@
+# Antidote plugin bundle — loaded by ~/.zshrc via `antidote load`.
+# Order matters: autosuggestions before syntax highlighting (must be last).
+zsh-users/zsh-autosuggestions
+zdharma-continuum/fast-syntax-highlighting

@@ -1,0 +1,83 @@
+# ~/.zshrc — managed by chezmoi. Cross-platform: Arch/omarchy + macOS (Apple Silicon).
+# Edit the source: ~/.local/share/chezmoi/dot_zshrc.tmpl  (then `chezmoi apply`)
+
+# ---------------------------------------------------------------------------
+# PATH & platform setup
+# ---------------------------------------------------------------------------
+typeset -U path PATH            # keep PATH entries unique
+{{ if eq .chezmoi.os "darwin" -}}
+# macOS — Homebrew (Apple Silicon)
+[[ -x /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
+{{ else if eq .chezmoi.os "linux" -}}
+# Linux — omarchy
+export OMARCHY_PATH="$HOME/.local/share/omarchy"
+path=("$OMARCHY_PATH/bin" $path)
+{{ end -}}
+path=("$HOME/.local/bin" $path)
+export PATH
+
+# ---------------------------------------------------------------------------
+# Environment
+# ---------------------------------------------------------------------------
+export EDITOR="nvim"
+export VISUAL="$EDITOR"
+export SUDO_EDITOR="$EDITOR"
+if command -v bat >/dev/null 2>&1; then
+  export BAT_THEME="ansi"
+  export MANROFFOPT="-c"
+  export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+fi
+
+# ---------------------------------------------------------------------------
+# History
+# ---------------------------------------------------------------------------
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=32768
+SAVEHIST=32768
+setopt APPEND_HISTORY INC_APPEND_HISTORY SHARE_HISTORY
+setopt HIST_IGNORE_ALL_DUPS HIST_IGNORE_SPACE HIST_REDUCE_BLANKS
+
+# Sensible zsh behaviour
+setopt AUTO_CD INTERACTIVE_COMMENTS
+setopt NO_BEEP
+
+# ---------------------------------------------------------------------------
+# Completions
+# ---------------------------------------------------------------------------
+_zcompdump_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+mkdir -p "$_zcompdump_dir"
+autoload -Uz compinit
+compinit -d "$_zcompdump_dir/.zcompdump"
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'   # case-insensitive
+zstyle ':completion:*' menu select
+
+# ---------------------------------------------------------------------------
+# Plugins (Antidote — self-bootstrapping, reads ~/.zsh_plugins.txt)
+# ---------------------------------------------------------------------------
+ANTIDOTE_DIR="${ZDOTDIR:-$HOME}/.antidote"
+if [[ ! -d $ANTIDOTE_DIR ]]; then
+  echo "Bootstrapping antidote…"
+  git clone --depth=1 https://github.com/mattmc3/antidote.git "$ANTIDOTE_DIR"
+fi
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+source "$ANTIDOTE_DIR/antidote.zsh"
+antidote load
+
+# ---------------------------------------------------------------------------
+# Tool integrations (zsh variants)
+# ---------------------------------------------------------------------------
+command -v mise   >/dev/null 2>&1 && eval "$(mise activate zsh)"
+command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
+command -v fzf    >/dev/null 2>&1 && eval "$(fzf --zsh)"
+if [[ -o interactive && $TERM != dumb ]] && command -v starship >/dev/null 2>&1; then
+  eval "$(starship init zsh)"
+fi
+
+# ---------------------------------------------------------------------------
+# Aliases & functions (managed by chezmoi under ~/.config/zsh)
+# ---------------------------------------------------------------------------
+[[ -f "$HOME/.config/zsh/aliases.zsh" ]]   && source "$HOME/.config/zsh/aliases.zsh"
+[[ -f "$HOME/.config/zsh/functions.zsh" ]] && source "$HOME/.config/zsh/functions.zsh"
+
+# Machine-local, untracked overrides (not in chezmoi). Put secrets/tokens here.
+[[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
