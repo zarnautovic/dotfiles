@@ -1,6 +1,7 @@
-# Theme — Rose Piné, to match the Noctalia desktop (ghostty ships this built-in).
-# Override per-machine in ~/.config/ghostty/config.local if you want.
-theme = "rose-pine"
+# Theme — owned by Noctalia App Theming. Noctalia regenerates the palette file
+# `~/.config/ghostty/themes/noctalia` to match the active color scheme; we only
+# point at it here. The generated file is intentionally NOT tracked by chezmoi.
+theme = noctalia
 
 # Font
 font-family = "JetBrainsMono Nerd Font"
