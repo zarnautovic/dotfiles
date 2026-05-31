@@ -17,6 +17,9 @@ sudo pacman -S --needed --noconfirm \
   thunar gnome-keyring \
   networkmanager pipewire pipewire-pulse wireplumber
 
+echo "==> Enabling NetworkManager (networking on boot)…"
+sudo systemctl enable NetworkManager.service   # enable only; doesn't disturb the current connection
+
 # Ensure an AUR helper exists (build yay from the AUR if missing).
 if ! command -v yay >/dev/null 2>&1; then
   echo "==> Bootstrapping yay (AUR helper)…"

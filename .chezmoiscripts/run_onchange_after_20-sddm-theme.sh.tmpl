@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Install the Noctalia SDDM theme + config. Linux only.
-# Safe to run while GDM is still active: this does NOT switch display managers.
-# The GDM->SDDM cutover is a deliberate manual step (see the echo at the end).
+# Install the Noctalia SDDM theme + config, then enable SDDM as the login manager.
+# Linux only. Assumes a clean Arch install (no other display manager to preserve).
+# `enable` only — never `enable --now`, which would start SDDM and kill your
+# current session. SDDM takes over on the next reboot.
 {{- if eq .chezmoi.os "linux" }}
 set -euo pipefail
 
@@ -29,18 +30,14 @@ Current=noctalia
 GreeterEnvironment=QT_WAYLAND_DISABLE_WINDOWDECORATION=1
 EOF
 
+echo "==> Enabling SDDM as the login manager (takes effect next boot)…"
+sudo systemctl enable sddm.service
+
 cat <<'NEXT'
 
-==> SDDM theme installed.
-
-    NOT switched yet (GDM is still your active login screen — by design).
-    After you've tested the Hyprland + Noctalia session, do the cutover:
-
-        sudo systemctl disable gdm.service
-        sudo systemctl enable sddm.service
-        # reboot
-
-    Keep a TTY (Ctrl+Alt+F3) handy the first time.
+==> SDDM installed, themed, and enabled.
+    Reboot, then pick the "Hyprland (uwsm)" session at the SDDM login screen.
+    (Keep a TTY handy the first time: Ctrl+Alt+F3.)
 NEXT
 {{- else }}
 exit 0

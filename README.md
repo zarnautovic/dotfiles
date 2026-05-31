@@ -55,14 +55,14 @@ sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply zarnautovic/dotfiles
 - builds **yay** from the AUR (if missing) and installs **`noctalia-shell`** (its bundled
   `noctalia-qs` Quickshell build replaces the official `quickshell` package);
 - bootstraps **tmux** plugins (tpm + powerkit) under `~/.config/tmux/plugins/`;
-- installs the **Noctalia SDDM** theme and writes `/etc/sddm.conf.d/10-noctalia.conf`.
+- installs the **Noctalia SDDM** theme and writes `/etc/sddm.conf.d/10-noctalia.conf`;
+- **enables `NetworkManager` and `sddm`** (`enable` only — SDDM takes over on the
+  next reboot, it won't kill the running session).
 
-Then finish setup and reboot into the desktop:
+The only thing left is your login shell, then reboot:
 
 ```bash
-chsh -s /usr/bin/zsh                     # make zsh your login shell
-sudo systemctl enable NetworkManager     # networking on boot
-sudo systemctl enable sddm.service       # graphical login on boot
+chsh -s /usr/bin/zsh     # make zsh your login shell
 reboot
 ```
 
