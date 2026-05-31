@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Install packages for the Arch + Hyprland + Noctalia desktop.
+# Runs on `chezmoi apply` whenever this file changes. Linux only.
+# Idempotent: pacman/yay `--needed` skip already-installed packages.
+{{- if eq .chezmoi.os "linux" }}
+set -euo pipefail
+
+echo "==> Installing repo packages (pacman)…"
+sudo pacman -S --needed --noconfirm \
+  base-devel git \
+  zsh chezmoi starship mise zoxide fzf bat eza tmux neovim gum chafa \
+  ghostty \
+  sddm qt6-svg qt6-5compat qt6-declarative \
+  uwsm \
+  hypridle hyprpolkitagent xdg-desktop-portal-hyprland xdg-desktop-portal-gtk \
+  hyprshot cliphist wl-clipboard playerctl brightnessctl \
+  thunar gnome-keyring \
+  networkmanager pipewire pipewire-pulse wireplumber
+
+# Ensure an AUR helper exists (build yay from the AUR if missing).
+if ! command -v yay >/dev/null 2>&1; then
+  echo "==> Bootstrapping yay (AUR helper)…"
+  tmp="$(mktemp -d)"
+  git clone --depth=1 https://aur.archlinux.org/yay.git "$tmp/yay"
+  ( cd "$tmp/yay" && makepkg -si --noconfirm )
+  rm -rf "$tmp"
+fi
+
+echo "==> Installing AUR packages (yay)…"
+# noctalia-shell ships its own Quickshell build (noctalia-qs), which conflicts
+# with and replaces the official `quickshell` package — so we do NOT install
+# `quickshell` above. --ask answers the replace-conflict prompt automatically.
+yay -S --needed --noconfirm --ask 4 noctalia-shell
+
+echo "==> Package install complete."
+{{- else }}
+exit 0
+{{- end }}

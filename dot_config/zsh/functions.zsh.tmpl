@@ -110,7 +110,7 @@ gd() {
 
 {{ if eq .chezmoi.os "linux" -}}
 # =========================================================================
-# Linux / omarchy only
+# Linux only
 # =========================================================================
 
 # Write an ISO to an SD card / USB drive.  Usage: iso2sd <iso> [device]
@@ -123,8 +123,13 @@ iso2sd() {
   local iso="$1" drive="$2"
   if [[ -z $drive ]]; then
     local available_sds; available_sds=$(lsblk -dpno NAME | grep -E '/dev/sd')
-    [[ -z $available_sds ]] && { echo "No SD drives found and no drive specified"; return 1; }
-    drive=$(omarchy-drive-select "$available_sds")
+    [[ -z $available_sds ]] && { echo "No removable drives found; specify the device explicitly."; return 1; }
+    if command -v fzf >/dev/null 2>&1; then
+      drive=$(printf '%s\n' "$available_sds" | fzf --prompt='Select target drive: ')
+    else
+      echo "Multiple drives found; pass the device explicitly (fzf not installed):"
+      printf '%s\n' "$available_sds"; return 1
+    fi
     [[ -z $drive ]] && { echo "No drive selected"; return 1; }
   fi
   sudo dd bs=4M status=progress oflag=sync if="$iso" of="$drive"
@@ -157,13 +162,16 @@ format-drive() {
   fi
 }
 
-# Transcoding helpers (omarchy-transcode)
-transcode-video-1080p() { omarchy-transcode "$1" mp4 1080p; }
-transcode-video-4K()    { omarchy-transcode "$1" mp4 4k; }
-transcode-video-gif()   { omarchy-transcode "$1" gif 1080p; }
-img2jpg()        { omarchy-transcode "$1" jpg high; }
-img2jpg-small()  { omarchy-transcode "$1" jpg low; }
-img2jpg-medium() { omarchy-transcode "$1" jpg medium; }
-img2jpg-large()  { omarchy-transcode "$1" jpg high; }
-img2png()        { omarchy-transcode "$1" png high; }
+# Transcoding helpers — only defined when omarchy-transcode is present
+# (kept for parity with omarchy; harmless no-op on a vanilla Hyprland box).
+if command -v omarchy-transcode >/dev/null 2>&1; then
+  transcode-video-1080p() { omarchy-transcode "$1" mp4 1080p; }
+  transcode-video-4K()    { omarchy-transcode "$1" mp4 4k; }
+  transcode-video-gif()   { omarchy-transcode "$1" gif 1080p; }
+  img2jpg()        { omarchy-transcode "$1" jpg high; }
+  img2jpg-small()  { omarchy-transcode "$1" jpg low; }
+  img2jpg-medium() { omarchy-transcode "$1" jpg medium; }
+  img2jpg-large()  { omarchy-transcode "$1" jpg high; }
+  img2png()        { omarchy-transcode "$1" png high; }
+fi
 {{ end -}}

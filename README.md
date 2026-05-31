@@ -1,78 +1,92 @@
 # dotfiles
 
 Personal dotfiles managed with [chezmoi](https://www.chezmoi.io).
-Cross-platform: **Arch Linux (Omarchy)** and **macOS (Apple Silicon)**.
+Cross-platform: **Arch Linux (Hyprland + Noctalia)** and **macOS (Apple Silicon)**.
 
 ## What's included
 
-- **Zsh** config (`.zshrc`) — templated per-OS: PATH, history, completions, tool init
-- **Starship** prompt (`.config/starship.toml`)
-- **Tmux** config + tokyo-night theme (`.config/tmux/`)
-- **Ghostty** terminal config (`.config/ghostty/`) — templated per-OS (Linux-only GTK/epoll keys gated)
-- **Zsh plugins** via [Antidote](https://github.com/mattmc3/antidote) — auto-bootstraps on
-  first launch:
-  - [`zsh-autosuggestions`](https://github.com/zsh-users/zsh-autosuggestions) — fish-like history suggestions
-  - [`fast-syntax-highlighting`](https://github.com/zdharma-continuum/fast-syntax-highlighting) — command-line highlighting
+**Shared (both OS)**
+- **Zsh** (`.zshrc`) — templated per-OS: PATH, history, completions, tool init
+- **Starship** prompt, **Tmux** (+ tokyo-night theme, tpm, powerkit)
+- **Ghostty** terminal — themed with **Rose Piné** to match the desktop
+- **Zsh plugins** via [Antidote](https://github.com/mattmc3/antidote) (auto-bootstraps):
+  `zsh-autosuggestions`, `fast-syntax-highlighting`
+- Aliases & functions (git worktrees, tmux AI-dev layouts, ssh forwarding, …)
 
-## What to install
+**Linux only (Arch + Hyprland)**
+- **Hyprland** (`.config/hypr/`) — `hyprland.conf`, `hypridle.conf`, per-host `monitors.conf`
+- **Noctalia** (`.config/noctalia/`) — the Quickshell desktop shell (bar, launcher,
+  notifications, lock screen, OSD, wallpaper). *Settings captured after first run.*
 
-| Tool | Required? | Used for |
-| --- | --- | --- |
-| `chezmoi` | **required** | apply the dotfiles |
-| `git` | **required** | clone repo + Antidote plugins |
-| `zsh` | **required** | the shell itself |
-| `starship` | recommended | the prompt |
-| `mise` | recommended | runtime version management (node, etc.) |
-| `zoxide` | recommended | smart `cd` |
-| `fzf` + `bat` | recommended | `ff` / `eff` fuzzy file finder & previews |
-| `eza` | recommended | `ls` / `lt` listing aliases |
-| `tmux` | recommended | `t`, `tdl`, `tsl` layouts |
-| `neovim` | recommended | `n`, `eff` editor |
-| `gum` | recommended | `gd` worktree prompt |
-| `ghostty` | optional | terminal emulator (only if you use the tracked ghostty config) |
-| JetBrainsMono Nerd Font | recommended | prompt & terminal glyphs |
+## Architecture
 
-Everything in `.zshrc` is guarded with `command -v`, so the config applies and loads
-cleanly even if the recommended tools are missing — you just don't get that feature.
+```
+.chezmoiignore                 # templated: hides linux-only paths on macOS, Brewfile on Linux
+.chezmoiscripts/               # Linux-gated bootstrap (no-ops on macOS)
+  run_onchange_before_10-packages.sh.tmpl     # pacman + yay (incl. noctalia-shell)
+  run_onchange_after_20-sddm-theme.sh.tmpl    # Noctalia SDDM theme + /etc/sddm.conf.d
+Brewfile                       # macOS — run manually
+dot_config/{ghostty,starship,tmux,zsh}        # shared
+dot_config/{hypr,noctalia}                    # linux-only
+dot_zshrc.tmpl  dot_zsh_plugins.txt           # shared
+```
+
+The desktop stack: **SDDM** (login, Noctalia theme) → **uwsm** launches **Hyprland** →
+**Noctalia** shell. Idle/lock via **hypridle** → Noctalia lock. File manager: **Thunar**.
 
 ## Install
 
-### Arch Linux
-
-> On **Omarchy**, most of these are already installed — at minimum you only need `zsh`.
+### Arch Linux (fresh box → full desktop)
 
 ```bash
-sudo pacman -S --needed \
-  zsh chezmoi git \
-  starship mise zoxide fzf bat eza tmux neovim gum \
-  ghostty
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply zarnautovic/dotfiles
+```
+This applies the dotfiles **and** runs the Linux bootstrap (installs packages via
+pacman/yay, installs the Noctalia SDDM theme). You'll be prompted for `sudo`.
 
-chezmoi init --apply zarnautovic/dotfiles
-chsh -s /usr/bin/zsh        # then log out and back in
+Then set zsh as your shell:
+```bash
+chsh -s /usr/bin/zsh
 ```
 
 ### macOS (Apple Silicon)
 
-> zsh is already the default shell on macOS — no `chsh` needed.
-
 ```bash
-# Install Homebrew first if you don't have it:
+# Homebrew first if needed:
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-brew install \
-  chezmoi git \
-  starship mise zoxide fzf bat eza tmux neovim gum
-brew install --cask ghostty font-jetbrains-mono-nerd-font
-
-chezmoi init --apply zarnautovic/dotfiles
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply zarnautovic/dotfiles
+brew bundle --file=~/Brewfile      # manual — nothing auto-installs on macOS
 ```
+The Linux/desktop scripts are inert on macOS; only the shared configs apply.
 
-## After installing
+## First-run checklist (Linux)
 
-- Restart your shell (or log out / back in).
-- Antidote clones the plugins automatically on first launch (needs git + network).
-- **Secrets are not tracked.** Put machine-local env/secrets in `~/.zshrc.local`
-  (auto-sourced, untracked), or use `gh auth login` for GitHub access.
+1. **Capture Noctalia settings** once you've tuned them in its GUI:
+   ```bash
+   chezmoi add ~/.config/noctalia/settings.json
+   ```
+   (Not hand-authored — Noctalia uses a versioned, auto-migrated schema.)
+2. **Test** the new session: log out, pick *Hyprland (uwsm)* at SDDM, verify the desktop.
+3. **Cutover** GDM → SDDM (only after testing; keep a TTY ready, Ctrl+Alt+F3):
+   ```bash
+   sudo systemctl disable gdm.service
+   sudo systemctl enable sddm.service
+   ```
+4. **Remove kitty** once ghostty is confirmed: `sudo pacman -Rns kitty`
+5. **Remove GNOME** (scorched earth) — *from a TTY, never inside a session*:
+   ```bash
+   sudo pacman -Rns $(pacman -Qgq gnome) gdm
+   sudo pacman -S --needed gnome-keyring xdg-desktop-portal-gtk
+   ```
+
+## Notes
+
+- **Secrets are not tracked.** Machine-local env/secrets go in `~/.zshrc.local`
+  (auto-sourced, untracked).
+- **Per-machine monitors:** edit `~/.config/hypr/monitors.conf`.
+- Everything in `.zshrc` is guarded with `command -v`, so it loads cleanly even when
+  optional tools are missing.
 
 ## Day-to-day
 

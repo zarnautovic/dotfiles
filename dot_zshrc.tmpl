@@ -1,4 +1,4 @@
-# ~/.zshrc — managed by chezmoi. Cross-platform: Arch/omarchy + macOS (Apple Silicon).
+# ~/.zshrc — managed by chezmoi. Cross-platform: Arch/Hyprland + macOS (Apple Silicon).
 # Edit the source: ~/.local/share/chezmoi/dot_zshrc.tmpl  (then `chezmoi apply`)
 
 # ---------------------------------------------------------------------------
@@ -8,10 +8,6 @@ typeset -U path PATH            # keep PATH entries unique
 {{ if eq .chezmoi.os "darwin" -}}
 # macOS — Homebrew (Apple Silicon)
 [[ -x /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
-{{ else if eq .chezmoi.os "linux" -}}
-# Linux — omarchy
-export OMARCHY_PATH="$HOME/.local/share/omarchy"
-path=("$OMARCHY_PATH/bin" $path)
 {{ end -}}
 path=("$HOME/.local/bin" $path)
 export PATH

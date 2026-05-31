@@ -1,1 +1,14 @@
+# Repo docs — never deployed to $HOME.
 README.md
+
+# --- OS gating ------------------------------------------------------------
+# Linux-only desktop configs: ignored everywhere except Linux.
+{{- if ne .chezmoi.os "linux" }}
+.config/hypr
+.config/noctalia
+{{- end }}
+
+# macOS-only: the Brewfile is for `brew bundle` on darwin; not wanted on Linux.
+{{- if ne .chezmoi.os "darwin" }}
+Brewfile
+{{- end }}

@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Install the Noctalia SDDM theme + config. Linux only.
+# Safe to run while GDM is still active: this does NOT switch display managers.
+# The GDM->SDDM cutover is a deliberate manual step (see the echo at the end).
+{{- if eq .chezmoi.os "linux" }}
+set -euo pipefail
+
+THEME_REPO="https://github.com/mahaveergurjar/sddm.git"
+THEME_BRANCH="noctalia"
+THEME_DEST="/usr/share/sddm/themes/noctalia"
+
+echo "==> Installing Noctalia SDDM theme to ${THEME_DEST}…"
+tmp="$(mktemp -d)"
+git clone --depth=1 -b "$THEME_BRANCH" "$THEME_REPO" "$tmp/theme"
+rm -rf "$tmp/theme/.git" "$tmp/theme/README.md"
+sudo rm -rf "$THEME_DEST"
+sudo mkdir -p "$(dirname "$THEME_DEST")"
+sudo cp -r "$tmp/theme" "$THEME_DEST"
+rm -rf "$tmp"
+
+echo "==> Writing /etc/sddm.conf.d/10-noctalia.conf…"
+sudo mkdir -p /etc/sddm.conf.d
+sudo tee /etc/sddm.conf.d/10-noctalia.conf >/dev/null <<'EOF'
+[Theme]
+Current=noctalia
+
+[General]
+# Wayland greeter
+GreeterEnvironment=QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+EOF
+
+cat <<'NEXT'
+
+==> SDDM theme installed.
+
+    NOT switched yet (GDM is still your active login screen — by design).
+    After you've tested the Hyprland + Noctalia session, do the cutover:
+
+        sudo systemctl disable gdm.service
+        sudo systemctl enable sddm.service
+        # reboot
+
+    Keep a TTY (Ctrl+Alt+F3) handy the first time.
+NEXT
+{{- else }}
+exit 0
+{{- end }}
