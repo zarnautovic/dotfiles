@@ -7,7 +7,7 @@ Cross-platform: **Arch Linux (Hyprland + Noctalia)** and **macOS (Apple Silicon)
 
 **Shared (both OS)**
 - **Zsh** (`.zshrc`) — templated per-OS: PATH, history, completions, tool init
-- **Starship** prompt, **Tmux** (+ tokyo-night theme, tpm, powerkit)
+- **Starship** prompt, **Tmux** (+ Rosé Pine theme, tpm, powerkit)
 - **Ghostty** terminal — themed with **Rose Piné** to match the desktop
 - **Zsh plugins** via [Antidote](https://github.com/mattmc3/antidote) (auto-bootstraps):
   `zsh-autosuggestions`, `fast-syntax-highlighting`
