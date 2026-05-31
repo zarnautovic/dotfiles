@@ -8,10 +8,10 @@ set -euo pipefail
 echo "==> Installing repo packages (pacman)…"
 sudo pacman -S --needed --noconfirm \
   base-devel git \
-  zsh chezmoi starship mise zoxide fzf bat eza tmux neovim gum chafa \
+  zsh chezmoi starship mise zoxide fzf bat eza tmux neovim gum chafa bc \
   ghostty \
   sddm qt6-svg qt6-5compat qt6-declarative \
-  uwsm \
+  hyprland uwsm \
   hypridle hyprpolkitagent xdg-desktop-portal-hyprland xdg-desktop-portal-gtk \
   hyprshot cliphist wl-clipboard playerctl brightnessctl \
   thunar gnome-keyring \
@@ -31,6 +31,21 @@ echo "==> Installing AUR packages (yay)…"
 # with and replaces the official `quickshell` package — so we do NOT install
 # `quickshell` above. --ask answers the replace-conflict prompt automatically.
 yay -S --needed --noconfirm --ask 4 noctalia-shell
+
+# tmux plugins (tpm + the @plugin bundles in tmux.conf). These live under
+# ~/.config/tmux/plugins and are NOT tracked by chezmoi, so bootstrap them here.
+TPM_DIR="$HOME/.config/tmux/plugins/tpm"
+if [[ ! -d "$TPM_DIR" ]]; then
+  echo "==> Bootstrapping tmux plugin manager (tpm)…"
+  git clone --depth=1 https://github.com/tmux-plugins/tpm "$TPM_DIR"
+fi
+if command -v tmux >/dev/null 2>&1; then
+  echo "==> Installing tmux plugins…"
+  # install_plugins reads the @plugin options, so a server must have sourced tmux.conf first.
+  tmux new-session -d -s _tpm_bootstrap 2>/dev/null || true
+  "$TPM_DIR/bin/install_plugins" || true
+  tmux kill-session -t _tpm_bootstrap 2>/dev/null || true
+fi
 
 echo "==> Package install complete."
 {{- else }}

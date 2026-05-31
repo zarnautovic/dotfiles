@@ -36,18 +36,48 @@ The desktop stack: **SDDM** (login, Noctalia theme) → **uwsm** launches **Hypr
 
 ## Install
 
-### Arch Linux (fresh box → full desktop)
+### Arch Linux (clean install → full desktop)
+
+**Prerequisites:** a base Arch system that boots to a TTY, an active network
+connection, and a non-root user with `sudo`. The bootstrap pulls everything else.
 
 ```bash
+# 1. Make sure git + curl exist (minimal installs may lack them)
+sudo pacman -S --needed --noconfirm git curl
+
+# 2. Install + apply the dotfiles. This runs the Linux bootstrap automatically.
 sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply zarnautovic/dotfiles
 ```
-This applies the dotfiles **and** runs the Linux bootstrap (installs packages via
-pacman/yay, installs the Noctalia SDDM theme). You'll be prompted for `sudo`.
 
-Then set zsh as your shell:
+`--apply` runs `.chezmoiscripts/` (you'll be prompted for `sudo`), which:
+- installs all packages via **pacman** — incl. `hyprland`, `sddm`, `uwsm`, the
+  `xdg-desktop-portal-hyprland`/`-gtk` portals, pipewire stack, Thunar, NetworkManager;
+- builds **yay** from the AUR (if missing) and installs **`noctalia-shell`** (its bundled
+  `noctalia-qs` Quickshell build replaces the official `quickshell` package);
+- bootstraps **tmux** plugins (tpm + powerkit) under `~/.config/tmux/plugins/`;
+- installs the **Noctalia SDDM** theme and writes `/etc/sddm.conf.d/10-noctalia.conf`.
+
+Then finish setup and reboot into the desktop:
+
 ```bash
-chsh -s /usr/bin/zsh
+chsh -s /usr/bin/zsh                     # make zsh your login shell
+sudo systemctl enable NetworkManager     # networking on boot
+sudo systemctl enable sddm.service       # graphical login on boot
+reboot
 ```
+
+At the **SDDM** login screen choose the **Hyprland (uwsm)** session and log in.
+Antidote (zsh plugins) self-bootstraps on your first interactive shell.
+
+> **Migrating from an existing GNOME/GDM box?** Don't enable SDDM blindly. Install as
+> above, test the Hyprland session first (you can pick it at GDM), then cut over —
+> and run the GNOME removal **from a TTY (Ctrl+Alt+F3), never inside a session**:
+> ```bash
+> sudo systemctl disable gdm.service && sudo systemctl enable sddm.service   # reboot, test
+> sudo pacman -Rns $(pacman -Qgq gnome) gdm
+> sudo pacman -S --needed gnome-keyring xdg-desktop-portal-gtk
+> sudo pacman -Rns kitty                                                     # once ghostty is confirmed
+> ```
 
 ### macOS (Apple Silicon)
 
@@ -60,25 +90,17 @@ brew bundle --file=~/Brewfile      # manual — nothing auto-installs on macOS
 ```
 The Linux/desktop scripts are inert on macOS; only the shared configs apply.
 
-## First-run checklist (Linux)
+## After first login (Linux)
 
-1. **Capture Noctalia settings** once you've tuned them in its GUI:
-   ```bash
-   chezmoi add ~/.config/noctalia/settings.json
-   ```
-   (Not hand-authored — Noctalia uses a versioned, auto-migrated schema.)
-2. **Test** the new session: log out, pick *Hyprland (uwsm)* at SDDM, verify the desktop.
-3. **Cutover** GDM → SDDM (only after testing; keep a TTY ready, Ctrl+Alt+F3):
-   ```bash
-   sudo systemctl disable gdm.service
-   sudo systemctl enable sddm.service
-   ```
-4. **Remove kitty** once ghostty is confirmed: `sudo pacman -Rns kitty`
-5. **Remove GNOME** (scorched earth) — *from a TTY, never inside a session*:
-   ```bash
-   sudo pacman -Rns $(pacman -Qgq gnome) gdm
-   sudo pacman -S --needed gnome-keyring xdg-desktop-portal-gtk
-   ```
+- **Capture Noctalia settings** once you've tuned them in its GUI (its schema is
+  versioned and auto-migrated, so it's not hand-authored):
+  ```bash
+  chezmoi add ~/.config/noctalia/settings.json
+  ```
+- **Per-machine monitors:** set your outputs/transforms in `~/.config/hypr/monitors.conf`,
+  then `chezmoi add` it. Inspect outputs with `hyprctl monitors all`.
+- **tmux** plugins were bootstrapped by the installer; inside tmux, `prefix + I`
+  reinstalls/updates them at any time (`prefix` is `C-s`).
 
 ## Notes
 
