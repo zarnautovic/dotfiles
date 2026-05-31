@@ -69,16 +69,6 @@ reboot
 At the **SDDM** login screen choose the **Hyprland (uwsm)** session and log in.
 Antidote (zsh plugins) self-bootstraps on your first interactive shell.
 
-> **Migrating from an existing GNOME/GDM box?** Don't enable SDDM blindly. Install as
-> above, test the Hyprland session first (you can pick it at GDM), then cut over —
-> and run the GNOME removal **from a TTY (Ctrl+Alt+F3), never inside a session**:
-> ```bash
-> sudo systemctl disable gdm.service && sudo systemctl enable sddm.service   # reboot, test
-> sudo pacman -Rns $(pacman -Qgq gnome) gdm
-> sudo pacman -S --needed gnome-keyring xdg-desktop-portal-gtk
-> sudo pacman -Rns kitty                                                     # once ghostty is confirmed
-> ```
-
 ### macOS (Apple Silicon)
 
 ```bash
