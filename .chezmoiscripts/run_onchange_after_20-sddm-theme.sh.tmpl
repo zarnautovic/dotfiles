@@ -30,6 +30,20 @@ Current=noctalia
 GreeterEnvironment=QT_WAYLAND_DISABLE_WINDOWDECORATION=1
 EOF
 
+echo "==> Seeding /var/lib/sddm/state.conf (first-login fallback for the noctalia theme)…"
+# The noctalia greeter submits userModel.lastUser, but SDDM only writes lastUser
+# to state.conf AFTER a successful login. On a fresh machine it's empty, so the
+# theme submits "" and PAM rejects it ("user unknown") — a first-login deadlock
+# (the theme won't reset the field for a retry either). Seed it ONCE, only if
+# absent, so the very first login already has a valid username. SDDM maintains
+# it itself afterwards. The `[[ ! -f ]]` guard never clobbers a working file.
+if [[ ! -f /var/lib/sddm/state.conf ]]; then
+  sudo install -d -o sddm -g sddm /var/lib/sddm
+  printf '[Last]\nSession=hyprland-uwsm.desktop\nUser=%s\n' '{{ .chezmoi.username }}' \
+    | sudo tee /var/lib/sddm/state.conf >/dev/null
+  sudo chown sddm:sddm /var/lib/sddm/state.conf
+fi
+
 echo "==> Enabling SDDM as the login manager (takes effect next boot)…"
 sudo systemctl enable sddm.service
 
