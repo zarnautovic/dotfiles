@@ -9,6 +9,8 @@ echo "==> Installing repo packages (pacman)…"
 sudo pacman -S --needed --noconfirm \
   base-devel git \
   zsh chezmoi starship mise zoxide fzf bat eza tmux neovim gum chafa bc \
+  lazygit lazydocker \
+  docker docker-compose docker-buildx \
   ghostty \
   sddm qt6-svg qt6-5compat qt6-declarative \
   hyprland uwsm \
@@ -19,6 +21,11 @@ sudo pacman -S --needed --noconfirm \
 
 echo "==> Enabling NetworkManager (networking on boot)…"
 sudo systemctl enable NetworkManager.service   # enable only; doesn't disturb the current connection
+
+echo "==> Docker: enabling the daemon + adding you to the docker group…"
+sudo systemctl enable docker.service                 # enable only; starts on next boot (use --now to start now)
+sudo usermod -aG docker "{{ .chezmoi.username }}"     # run docker without sudo — re-login for it to take effect
+# NOTE: membership in 'docker' grants effectively-root access to the host (the daemon runs as root).
 
 # Ensure an AUR helper exists (build yay from the AUR if missing).
 if ! command -v yay >/dev/null 2>&1; then

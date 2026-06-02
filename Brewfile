@@ -14,6 +14,8 @@ brew "tmux"
 brew "neovim"
 brew "gum"
 brew "chafa"
+brew "lazygit"
+brew "lazydocker"
 
 cask "ghostty"
 cask "font-jetbrains-mono-nerd-font"
