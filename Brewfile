@@ -14,6 +14,7 @@ brew "tmux"
 brew "neovim"
 brew "gum"
 brew "chafa"
+brew "btop"
 brew "lazygit"
 brew "lazydocker"
 
