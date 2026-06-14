@@ -5,3 +5,4 @@ require("default")
 -- left:  aerospace, front_app
 -- right: calendar, keyboard, volume, battery, cpu, slack
 require("items.front_app")
+require("items.calendar")
