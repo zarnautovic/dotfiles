@@ -1,13 +1,14 @@
 require("bar")
 require("default")
 
--- Items are wired in over Tasks 3–10 (order preserves on-bar placement):
--- left:  aerospace, front_app
--- right: calendar, keyboard, volume, battery, cpu, slack
+-- Left items
+require("items.aerospace")
 require("items.front_app")
+
+-- Right items
 require("items.calendar")
-require("items.cpu")
-require("items.battery")
-require("items.volume")
 require("items.keyboard")
+require("items.volume")
+require("items.battery")
+require("items.cpu")
 require("items.slack")
