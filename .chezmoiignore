@@ -1,6 +1,9 @@
 # Repo docs — never deployed to $HOME.
 README.md
 
+# Local secrets — machine-specific, NEVER tracked/committed. Each machine keeps its own.
+.config/zsh/secrets.zsh
+
 # --- OS gating ------------------------------------------------------------
 # Linux-only desktop configs: ignored everywhere except Linux.
 {{- if ne .chezmoi.os "linux" }}
