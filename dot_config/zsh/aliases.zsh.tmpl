@@ -68,3 +68,23 @@ alias g='git'
 alias gcm='git commit -m'
 alias gcam='git commit -a -m'
 alias gcad='git commit -a --amend'
+
+# --- Personal (ported from macOS oh-my-zsh setup) ---
+# Local IP. On Linux `ip` is the iproute2 command, so we don't shadow it there:
+# use `myip` (works on both); `ip` stays as a convenience on macOS only.
+{{ if eq .chezmoi.os "darwin" -}}
+alias ip="ipconfig getifaddr en0"
+myip() { ipconfig getifaddr en0; }
+{{ else -}}
+myip() { ip route get 1 2>/dev/null | awk '{print $7; exit}'; }
+{{ end -}}
+
+# Quick config editing (chezmoi-aware: edit the source, not the deployed copy)
+alias zshconfig="chezmoi edit ~/.zshrc"
+alias zshsource="source ~/.zshrc"
+alias sshhome="cd ~/.ssh"
+alias sshconfig='$EDITOR ~/.ssh/config'
+alias gitconfig='$EDITOR ~/.gitconfig'
+
+# PHP / Xdebug (PHPStorm)
+alias xdebug="XDEBUG_SESSION=PHPSTORM XDEBUG_MODE=debug XDEBUG_CONFIG=\"idekey=PHPSTORM client_host=127.0.0.1 client_port=44435\""

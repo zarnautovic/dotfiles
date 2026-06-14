@@ -8,6 +8,8 @@ typeset -U path PATH            # keep PATH entries unique
 {{ if eq .chezmoi.os "darwin" -}}
 # macOS — Homebrew (Apple Silicon)
 [[ -x /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
+# libpq (psql/pg_dump) is a keg-only Homebrew formula — not on PATH by default
+[[ -d /opt/homebrew/opt/libpq/bin ]] && path=("/opt/homebrew/opt/libpq/bin" $path)
 {{ end -}}
 path=("$HOME/.local/bin" $path)
 export PATH
@@ -67,6 +69,14 @@ command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
 command -v fzf    >/dev/null 2>&1 && eval "$(fzf --zsh)"
 if [[ -o interactive && $TERM != dumb ]] && command -v starship >/dev/null 2>&1; then
   eval "$(starship init zsh)"
+fi
+
+# ---------------------------------------------------------------------------
+# CLI completions (bash-style — need bashcompinit; cross-platform via command -v)
+# ---------------------------------------------------------------------------
+if command -v terraform >/dev/null 2>&1; then
+  autoload -Uz bashcompinit && bashcompinit
+  complete -o nospace -C "$(command -v terraform)" terraform
 fi
 
 # ---------------------------------------------------------------------------
