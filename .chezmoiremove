@@ -1,0 +1,8 @@
+# SketchyBar's shell config was replaced by the Lua (SbarLua) port.
+# Remove the old shell files from any machine that previously deployed them
+# (chezmoi does not delete targets just because their source was removed).
+# Matching a non-existent path is a harmless no-op.
+.config/sketchybar/colors.sh
+.config/sketchybar/helpers/icon_map.sh
+.config/sketchybar/items/*.sh
+.config/sketchybar/plugins/*.sh
