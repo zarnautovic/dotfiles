@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Build & install the SbarLua module (Lua bindings for SketchyBar). macOS only.
+# Idempotent: skips the clone/build if the module is already present.
+{{- if eq .chezmoi.os "darwin" }}
+set -euo pipefail
+SBARLUA_REF=main          # bump this line to force a rebuild on a SbarLua update
+
+command -v lua >/dev/null 2>&1 || brew install lua            # interpreter for sketchybarrc
+xcode-select -p >/dev/null 2>&1 || xcode-select --install     # clang/make for the build
+
+if [ ! -f "$HOME/.local/share/sketchybar_lua/sketchybar.so" ]; then
+  echo "==> Building SbarLua module…"
+  tmp="$(mktemp -d)"
+  git clone --depth=1 -b "$SBARLUA_REF" https://github.com/FelixKratz/SbarLua.git "$tmp/SbarLua"
+  ( cd "$tmp/SbarLua" && make install )
+  rm -rf "$tmp"
+fi
+
+sketchybar --reload 2>/dev/null || brew services restart sketchybar 2>/dev/null || true
+{{- else }}
+exit 0
+{{- end }}
