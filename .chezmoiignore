@@ -9,8 +9,11 @@ README.md
 {{- end }}
 
 # macOS-only: the Brewfile is for `brew bundle` on darwin; not wanted on Linux.
+# AeroSpace (tiling WM) and SketchyBar (menu bar) are macOS-only tools.
 {{- if ne .chezmoi.os "darwin" }}
 Brewfile
+.config/aerospace
+.config/sketchybar
 {{- end }}
 
 # On Linux, starship.toml is owned by Noctalia App Theming (it injects the color
