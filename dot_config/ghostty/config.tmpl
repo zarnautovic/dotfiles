@@ -1,7 +1,12 @@
-# Theme — owned by Noctalia App Theming. Noctalia regenerates the palette file
+# Theme
+{{ if eq .chezmoi.os "darwin" -}}
+theme = Rose Pine
+{{ else -}}
+# Linux: owned by Noctalia App Theming. Noctalia regenerates the palette file
 # `~/.config/ghostty/themes/noctalia` to match the active color scheme; we only
 # point at it here. The generated file is intentionally NOT tracked by chezmoi.
 theme = noctalia
+{{ end -}}
 
 # Font
 font-family = "JetBrainsMono Nerd Font"
