@@ -1,5 +1,6 @@
 # Repo docs — never deployed to $HOME.
 README.md
+docs
 
 # --- OS gating ------------------------------------------------------------
 # Linux-only desktop configs: ignored everywhere except Linux.
