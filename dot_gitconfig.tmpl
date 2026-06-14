@@ -1,0 +1,15 @@
+[user]
+	name = Zlatan Arnautovic
+	email = zlatan.arnautovic@sofascore.com
+[alias]
+	lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+[init]
+	defaultBranch = main
+[pull]
+	rebase = true
+[credential "https://github.com"]
+	helper = 
+	helper = !{{ if eq .chezmoi.os "darwin" }}/opt/homebrew/bin/gh{{ else }}gh{{ end }} auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !{{ if eq .chezmoi.os "darwin" }}/opt/homebrew/bin/gh{{ else }}gh{{ end }} auth git-credential
