@@ -20,3 +20,8 @@ brew "lazydocker"
 
 cask "ghostty"
 cask "font-jetbrains-mono-nerd-font"
+
+# SketchyBar + Lua (SbarLua config). Tap hosts the sketchybar formula.
+tap "FelixKratz/formulae"
+brew "sketchybar"
+brew "lua"
