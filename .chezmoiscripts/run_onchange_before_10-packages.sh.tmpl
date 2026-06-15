@@ -42,6 +42,11 @@ echo "==> Installing AUR packages (yay)…"
 # `quickshell` above. --ask answers the replace-conflict prompt automatically.
 yay -S --needed --noconfirm --ask 4 noctalia-shell
 
+echo "==> Installing AUR apps (yay)…"
+# visual-studio-code-bin: Microsoft's branded build (Marketplace + proprietary
+# extensions), as opposed to the repo's open-source `code` (Code - OSS).
+yay -S --needed --noconfirm visual-studio-code-bin
+
 # tmux plugins (tpm + the @plugin bundles in tmux.conf). These live under
 # ~/.config/tmux/plugins and are NOT tracked by chezmoi, so bootstrap them here.
 TPM_DIR="$HOME/.config/tmux/plugins/tpm"
