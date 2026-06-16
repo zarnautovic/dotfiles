@@ -17,10 +17,14 @@ sudo pacman -S --needed --noconfirm \
   hypridle hyprpolkitagent xdg-desktop-portal-hyprland xdg-desktop-portal-gtk \
   hyprshot cliphist wl-clipboard playerctl brightnessctl \
   thunar gnome-keyring \
+  bluez bluez-utils \
   networkmanager pipewire pipewire-pulse wireplumber
 
 echo "==> Enabling NetworkManager (networking on boot)…"
 sudo systemctl enable NetworkManager.service   # enable only; doesn't disturb the current connection
+
+echo "==> Enabling Bluetooth (needed for Chrome passkeys via phone/QR — caBLE BLE proximity)…"
+sudo systemctl enable --now bluetooth.service  # --now so passkeys work without a reboot; note bluez (not just bluez-utils) provides bluetoothd
 
 echo "==> Docker: enabling the daemon + adding you to the docker group…"
 sudo systemctl enable docker.service                 # enable only; starts on next boot (use --now to start now)
