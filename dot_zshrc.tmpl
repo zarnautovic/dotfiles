@@ -12,6 +12,8 @@ typeset -U path PATH            # keep PATH entries unique
 [[ -d /opt/homebrew/opt/libpq/bin ]] && path=("/opt/homebrew/opt/libpq/bin" $path)
 {{ end -}}
 path=("$HOME/.local/bin" $path)
+# Sofascore dev-env tool shims (php/composer/phpstan/... run in the tools container)
+[[ -d "$HOME/Projects/localdev/sofascore-env/bin" ]] && path=("$HOME/Projects/localdev/sofascore-env/bin" $path)
 export PATH
 
 # ---------------------------------------------------------------------------
