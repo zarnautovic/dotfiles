@@ -11,6 +11,10 @@ Cross-platform: **Arch Linux (Hyprland + Noctalia)** and **macOS (Apple Silicon)
 - **Ghostty** terminal — themed with **Rose Piné** to match the desktop
 - **Zsh plugins** via [Antidote](https://github.com/mattmc3/antidote) (auto-bootstraps):
   `zsh-autosuggestions`, `fast-syntax-highlighting`
+- **[herdr](https://herdr.dev)** — terminal multiplexer for AI coding agents.
+  Auto-installed on both OSes by `.chezmoiscripts/40-herdr` (static binary in
+  `~/.local/bin`, no root); zsh completions wired up in `.zshrc`.
+  Upgrade in place with `herdr update`.
 - Aliases & functions (git worktrees, tmux AI-dev layouts, ssh forwarding, …)
 
 **Linux only (Arch + Hyprland)**
@@ -22,9 +26,11 @@ Cross-platform: **Arch Linux (Hyprland + Noctalia)** and **macOS (Apple Silicon)
 
 ```
 .chezmoiignore                 # templated: hides linux-only paths on macOS, Brewfile on Linux
-.chezmoiscripts/               # Linux-gated bootstrap (no-ops on macOS)
-  run_onchange_before_10-packages.sh.tmpl     # pacman + yay (incl. noctalia-shell)
-  run_onchange_after_20-sddm-theme.sh.tmpl    # Noctalia SDDM theme + /etc/sddm.conf.d
+.chezmoiscripts/               # bootstrap; each script gates on .chezmoi.os
+  run_onchange_before_10-packages.sh.tmpl     # linux: pacman + yay (incl. noctalia-shell)
+  run_onchange_after_20-sddm-theme.sh.tmpl    # linux: Noctalia SDDM theme + /etc/sddm.conf.d
+  run_onchange_after_30-sbarlua.sh.tmpl       # macos: SbarLua module for SketchyBar
+  run_onchange_after_40-herdr.sh.tmpl         # both:  herdr via herdr.dev/install.sh
 Brewfile                       # macOS — run manually
 dot_config/{ghostty,starship,tmux,zsh}        # shared
 dot_config/{hypr,noctalia}                    # linux-only
@@ -76,9 +82,10 @@ Antidote (zsh plugins) self-bootstraps on your first interactive shell.
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply zarnautovic/dotfiles
-brew bundle --file=~/Brewfile      # manual — nothing auto-installs on macOS
+brew bundle --file=~/Brewfile      # manual — Homebrew packages don't auto-install
 ```
-The Linux/desktop scripts are inert on macOS; only the shared configs apply.
+The Linux/desktop scripts are inert on macOS. What does run there: the SbarLua
+build (`30-sbarlua`) and the herdr install (`40-herdr`) — plus the shared configs.
 
 ## After first login (Linux)
 

@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Install herdr — terminal agent multiplexer (https://herdr.dev).
+# Cross-platform on purpose: the official POSIX installer covers Linux and macOS
+# alike, so this script is NOT OS-gated. It drops a static binary in
+# ~/.local/bin (already on PATH from .zshrc) — no root, no package manager.
+{{- if or (eq .chezmoi.os "linux") (eq .chezmoi.os "darwin") }}
+set -euo pipefail
+
+# The installer always fetches the current release from https://herdr.dev/latest.json;
+# this marker only records what was current when the script last changed. Bump it
+# to force a reinstall on the next `chezmoi apply`.
+HERDR_PINNED_AT=0.7.5
+
+# run_onchange_: chezmoi runs this on the first apply and afterwards only when the
+# file's content changes — so the install below is not repeated on every apply.
+# In between, herdr upgrades itself via `herdr update`.
+if command -v herdr >/dev/null 2>&1; then
+  echo "==> Reinstalling herdr (currently $(herdr --version 2>/dev/null || echo unknown), pinned marker ${HERDR_PINNED_AT})…"
+else
+  echo "==> Installing herdr (marker ${HERDR_PINNED_AT})…"
+fi
+
+curl -fsSL https://herdr.dev/install.sh | sh
+{{- else }}
+exit 0
+{{- end }}
