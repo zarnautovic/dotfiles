@@ -17,6 +17,11 @@ Brewfile
 .config/sketchybar
 {{- end }}
 
+# lazy.nvim's plugin lockfile churns on every :Lazy update and would ping-pong
+# between machines (apply would silently roll plugin pins back). Each machine
+# owns its own; nvim config itself stays tracked.
+.config/nvim/lazy-lock.json
+
 # On Linux, starship.toml is owned by Noctalia App Theming (it injects the color
 # palette inline, so chezmoi would fight it). Let Noctalia manage the live file
 # there — change it via Noctalia's settings. Still tracked/deployed on macOS.
