@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# noctalia-osc-recolor — managed by chezmoi (Linux only).
+#
+# Push the active Noctalia palette into every open terminal with OSC colour
+# sequences, so running shells/TUIs recolour instantly on a scheme change
+# without a restart. Idea borrowed from Omarchy's omarchy-theme-osc.
+#
+# Input: ~/.cache/noctalia/terminal-osc.env, rendered by the Noctalia user
+# template `terminal-osc` (see ~/.config/noctalia/config.toml); this script is
+# its post_hook. `--stdout` prints the sequences instead of writing to ptys.
+#
+# OSC 4;n  = ANSI palette slot n   OSC 10/11/12 = fg / bg / cursor
+# OSC 17/19 = selection bg / fg    (terminals ignore what they don't support)
+set -euo pipefail
+
+env_file="${XDG_CACHE_HOME:-$HOME/.cache}/noctalia/terminal-osc.env"
+[[ -r $env_file ]] || exit 0
+
+declare -A C
+while IFS='=' read -r key value; do
+    [[ -z $key || $key == \#* ]] && continue
+    C[$key]="${value//[[:space:]]/}"
+done <"$env_file"
+
+seq=""
+osc() { [[ -n ${C[$2]:-} ]] && seq+=$(printf '\033]%s;%s\007' "$1" "${C[$2]}"); }
+osc 10 foreground
+osc 11 background
+osc 12 cursor
+osc 17 selection_background
+osc 19 selection_foreground
+for i in {0..15}; do
+    [[ -n ${C[color$i]:-} ]] && seq+=$(printf '\033]4;%d;%s\007' "$i" "${C[color$i]}")
+done
+[[ -n $seq ]] || exit 0
+
+if [[ ${1:-} == --stdout ]]; then
+    printf '%s' "$seq"
+    exit 0
+fi
+
+# Every pty we own. A pty whose reader is stopped could block a write, so each
+# write gets its own short timeout and they all run in parallel.
+for pty in /dev/pts/[0-9]*; do
+    [[ -w $pty && -O $pty ]] || continue
+    timeout 1 bash -c 'printf "%s" "$1" >"$2"' _ "$seq" "$pty" 2>/dev/null &
+done
+wait

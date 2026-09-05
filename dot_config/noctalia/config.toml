@@ -25,7 +25,26 @@ builtin = "Rosé Pine"
 [theme.templates]
 enable_builtin_templates   = true
 builtin_ids                = ["hyprland", "ghostty", "starship", "btop", "qt"]
-enable_community_templates = false
+# Community templates are fetched from api.noctalia.dev and cached locally.
+# vscode: renders the theme JSON inside the Marketplace extension
+# `noctalia.noctaliatheme` (install it once: code --install-extension
+# noctalia.noctaliatheme) and set "workbench.colorTheme": "NoctaliaTheme".
+enable_community_templates = true
+community_ids              = ["vscode"]
+
+# Push the palette into every open terminal via OSC sequences (instant recolour
+# of running shells/TUIs; Ghostty also reloads on its own).
+[theme.templates.user.terminal-osc]
+input_path  = "templates/terminal-osc.env"
+output_path = "~/.cache/noctalia/terminal-osc.env"
+post_hook   = "~/.local/bin/noctalia-osc-recolor"
+
+# Neovim palette for aether.nvim (see nvim/lua/plugins/colorscheme.lua);
+# SIGUSR1 makes running instances re-read it.
+[theme.templates.user.neovim-colors]
+input_path  = "templates/neovim-colors.lua"
+output_path = "~/.config/nvim/lua/noctalia_colors.lua"
+post_hook   = "pkill -SIGUSR1 -x nvim || true"
 
 # ── Wallpaper ──────────────────────────────────────────────────────────────
 [wallpaper]

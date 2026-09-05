@@ -88,6 +88,14 @@ build (`30-sbarlua`) and the herdr install (`40-herdr`) — plus the shared conf
 
 ## After first login (Linux)
 
+- **VS Code theme:** Noctalia renders its palette into the Marketplace extension
+  `noctalia.noctaliatheme` (community template `vscode`), so install it once and pick
+  `NoctaliaTheme` as the colour theme:
+  ```bash
+  code --install-extension noctalia.noctaliatheme
+  ```
+  Neovim (aether.nvim) and open terminals (OSC sequences via
+  `~/.local/bin/noctalia-osc-recolor`) follow the palette automatically.
 - **Noctalia settings:** the tracked `~/.config/noctalia/config.toml` is the source of
   truth. Changes made in the Settings GUI land in `~/.local/state/noctalia/settings.toml`
   (untracked, per-machine overrides) — fold anything you want to keep back into
