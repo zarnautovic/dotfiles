@@ -1,0 +1,41 @@
+# Noctalia v5 — managed by chezmoi (Linux only).
+# Hand-written config; only keys that differ from the defaults live here.
+# Full reference: https://docs.noctalia.dev/noctalia/configuration/
+# Defaults:       noctalia config export full
+#
+# Settings changed in the GUI go to ~/.local/state/noctalia/settings.toml
+# (untracked, per-machine). Fold anything worth keeping back into this file.
+
+[shell]
+telemetry_enabled = false
+# polkit auth popups come from hyprpolkitagent (systemd user service), so
+# Noctalia's own agent stays off (the default) to avoid two agents racing.
+polkit_agent      = false
+
+# ── Theme ──────────────────────────────────────────────────────────────────
+# Noctalia is the single source of truth for COLORS: the templates below render
+# per-app palette files on every palette change. chezmoi tracks STRUCTURE only
+# (ghostty: `theme = noctalia`; hyprland: require("noctalia")); never duplicate
+# colors in tracked configs.
+[theme]
+mode    = "dark"
+source  = "builtin"
+builtin = "Rosé Pine"
+
+[theme.templates]
+enable_builtin_templates   = true
+builtin_ids                = ["hyprland", "ghostty", "starship", "btop", "qt"]
+enable_community_templates = false
+
+# ── Wallpaper ──────────────────────────────────────────────────────────────
+[wallpaper]
+directory = "~/Pictures/Wallpapers"
+
+# ── Idle ───────────────────────────────────────────────────────────────────
+# Idle/lock/dpms/suspend escalation is owned by hypridle (~/.config/hypr/hypridle.conf),
+# which calls `noctalia msg session lock`. Keep Noctalia's own idle actions off.
+[idle.behavior.lock]
+enabled = false
+
+[idle.behavior.screen-off]
+enabled = false

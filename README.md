@@ -18,9 +18,9 @@ Cross-platform: **Arch Linux (Hyprland + Noctalia)** and **macOS (Apple Silicon)
 - Aliases & functions (git worktrees, tmux AI-dev layouts, ssh forwarding, …)
 
 **Linux only (Arch + Hyprland)**
-- **Hyprland** (`.config/hypr/`) — `hyprland.conf`, `hypridle.conf`, per-host `monitors.conf`
-- **Noctalia** (`.config/noctalia/`) — the Quickshell desktop shell (bar, launcher,
-  notifications, lock screen, OSD, wallpaper). *Settings captured after first run.*
+- **Hyprland** (`.config/hypr/`) — `hyprland.lua`, `hypridle.conf`, per-host `monitors.lua`
+- **Noctalia** (`.config/noctalia/config.toml`) — the v5 native-Wayland desktop shell
+  (bar, launcher, notifications, lock screen, OSD, wallpaper, app theming).
 
 ## Architecture
 
@@ -56,10 +56,9 @@ sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply zarnautovic/dotfiles
 ```
 
 `--apply` runs `.chezmoiscripts/` (you'll be prompted for `sudo`), which:
-- installs all packages via **pacman** — incl. `hyprland`, `sddm`, `uwsm`, the
+- installs all packages via **pacman** — incl. `hyprland`, `noctalia`, `sddm`, `uwsm`, the
   `xdg-desktop-portal-hyprland`/`-gtk` portals, pipewire stack, Thunar, NetworkManager;
-- builds **yay** from the AUR (if missing) and installs **`noctalia-shell`** (its bundled
-  `noctalia-qs` Quickshell build replaces the official `quickshell` package);
+- builds **yay** from the AUR (if missing) for the remaining AUR apps;
 - bootstraps **tmux** plugins (tpm + powerkit) under `~/.config/tmux/plugins/`;
 - installs the **Noctalia SDDM** theme and writes `/etc/sddm.conf.d/10-noctalia.conf`;
 - **enables `NetworkManager` and `sddm`** (`enable` only — SDDM takes over on the
@@ -89,12 +88,11 @@ build (`30-sbarlua`) and the herdr install (`40-herdr`) — plus the shared conf
 
 ## After first login (Linux)
 
-- **Capture Noctalia settings** once you've tuned them in its GUI (its schema is
-  versioned and auto-migrated, so it's not hand-authored):
-  ```bash
-  chezmoi add ~/.config/noctalia/settings.json
-  ```
-- **Per-machine monitors:** set your outputs/transforms in `~/.config/hypr/monitors.conf`,
+- **Noctalia settings:** the tracked `~/.config/noctalia/config.toml` is the source of
+  truth. Changes made in the Settings GUI land in `~/.local/state/noctalia/settings.toml`
+  (untracked, per-machine overrides) — fold anything you want to keep back into
+  `config.toml` (`noctalia config export` prints the merged user config).
+- **Per-machine monitors:** set your outputs/transforms in `~/.config/hypr/monitors.lua`,
   then `chezmoi add` it. Inspect outputs with `hyprctl monitors all`.
 - **tmux** plugins were bootstrapped by the installer; inside tmux, `prefix + I`
   reinstalls/updates them at any time (`prefix` is `C-s`).

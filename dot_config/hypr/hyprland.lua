@@ -1,5 +1,5 @@
 -- Hyprland Lua config — managed by chezmoi (Linux only).
--- Desktop shell: Noctalia (Quickshell). Session launched via uwsm.
+-- Desktop shell: Noctalia v5 (native Wayland, no Qt). Session launched via uwsm.
 -- Reference: https://wiki.hypr.land/Configuring/
 -- API stubs for LSP: /usr/share/hypr/stubs/hl.meta.lua
 
@@ -20,17 +20,18 @@ require("monitors")
 -- ---------------------------------------------------------------------------
 local terminal    = "ghostty"
 local fileManager = "thunar"
--- Noctalia surfaces, driven through Quickshell IPC (noctalia-shell v4.x).
--- List endpoints at runtime with:  qs -c noctalia-shell ipc show
-local noctalia = "qs -c noctalia-shell ipc call "
-local menu = noctalia .. "launcher toggle"
+-- Noctalia surfaces, driven through its IPC CLI (noctalia v5+).
+-- Reference: https://docs.noctalia.dev/noctalia/ipc/   (noctalia msg --help)
+local noctalia = "noctalia msg "
+local menu = noctalia .. "panel-toggle launcher"
 
 -- ---------------------------------------------------------------------------
 -- Autostart  (uwsm scopes graphical apps under the systemd session)
 -- ---------------------------------------------------------------------------
 hl.on("hyprland.start", function()
-    hl.exec_cmd("uwsm app -- qs -c noctalia-shell") -- the Noctalia shell itself
-    hl.exec_cmd("uwsm app -- hyprpolkitagent")      -- polkit auth popups
+    hl.exec_cmd("uwsm app -- noctalia")             -- the Noctalia shell itself
+    -- polkit agent runs as a systemd user service (hyprpolkitagent.service,
+    -- enabled via graphical-session.target) — don't exec it here too
     hl.exec_cmd("uwsm app -- hypridle")             -- idle -> lock/dpms/suspend
     -- Clipboard history feeding cliphist (queried via Noctalia's clipboard panel)
     hl.exec_cmd("wl-paste --type text  --watch cliphist store")
@@ -51,8 +52,8 @@ hl.config({
         gaps_in     = 5,
         gaps_out    = 10,
         border_size = 2,
-        -- Border colors are owned by Noctalia's App Theming — see the
-        -- require("noctalia/noctalia-colors") at the bottom of this file.
+        -- Border colors are owned by Noctalia's template engine — see the
+        -- require("noctalia") at the bottom of this file.
         resize_on_border = true,
         allow_tearing    = false,
         layout           = "dwindle",
@@ -136,11 +137,11 @@ hl.bind("ALT + V", hl.dsp.send_key_state({ mods = "SHIFT", key = "INSERT", state
 hl.bind("ALT + V", hl.dsp.send_key_state({ mods = "SHIFT", key = "INSERT", state = "up", window = "activewindow" }), { release = true })
 
 -- Noctalia surfaces
-hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(noctalia .. "controlCenter toggle"))
-hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(noctalia .. "launcher clipboard"))
-hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd(noctalia .. "sessionMenu toggle"))
-hl.bind(mainMod .. " + L", hl.dsp.exec_cmd(noctalia .. "lockScreen lock"))
-hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd(noctalia .. 'wallpaper random ""'))
+hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(noctalia .. "panel-toggle control-center"))
+hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(noctalia .. "panel-toggle clipboard"))
+hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd(noctalia .. "panel-toggle session"))
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd(noctalia .. "session lock"))
+hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd(noctalia .. "wallpaper-random"))
 
 -- Screenshots (hyprshot) — save to disk + clipboard
 -- Print variants kept for external keyboards; this laptop has no Print key, use the Super ones.
@@ -176,12 +177,12 @@ hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
 -- Media & brightness keys — routed through Noctalia IPC so its OSD shows.
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd(noctalia .. "volume increase"), { locked = true, repeating = true })
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd(noctalia .. "volume decrease"), { locked = true, repeating = true })
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd(noctalia .. "volume muteOutput"), { locked = true })
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd(noctalia .. "brightness increase"), { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd(noctalia .. "brightness decrease"), { locked = true, repeating = true })
-hl.bind("XF86AudioPlay", hl.dsp.exec_cmd(noctalia .. "media playPause"), { locked = true })
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd(noctalia .. "volume-up"), { locked = true, repeating = true })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd(noctalia .. "volume-down"), { locked = true, repeating = true })
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd(noctalia .. "volume-mute"), { locked = true })
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd(noctalia .. "brightness-up"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd(noctalia .. "brightness-down"), { locked = true, repeating = true })
+hl.bind("XF86AudioPlay", hl.dsp.exec_cmd(noctalia .. "media toggle"), { locked = true })
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd(noctalia .. "media next"), { locked = true })
 hl.bind("XF86AudioPrev", hl.dsp.exec_cmd(noctalia .. "media previous"), { locked = true })
 
@@ -205,10 +206,14 @@ hl.window_rule({
 })
 
 -- ---------------------------------------------------------------------------
--- Theming — Noctalia App Theming generates noctalia/noctalia-colors.lua (via
--- the user template in ~/.config/noctalia/templates/hyprland.lua) and keeps it
--- in sync with the active color scheme. We track only this require; the colors
--- themselves live in the generated file and are intentionally NOT tracked by
--- chezmoi. pcall so a missing palette (fresh install) can't kill the config.
+-- Theming — Noctalia's built-in `hyprland` template renders ~/.config/hypr/noctalia.lua
+-- (border/group colors for the active palette) and keeps it in sync on every
+-- palette change. We track only this require; the generated file is intentionally
+-- NOT tracked by chezmoi. pcall so a missing palette (fresh install) can't kill
+-- the config. Noctalia's own apply hook would append a bare require("noctalia")
+-- line if this were missing — keep this block so it doesn't.
 -- ---------------------------------------------------------------------------
-pcall(require, "noctalia/noctalia-colors")
+local ok, noctalia_theme = pcall(require, "noctalia")
+if ok and type(noctalia_theme) == "table" and noctalia_theme.apply_theme then
+    noctalia_theme.apply_theme()
+end

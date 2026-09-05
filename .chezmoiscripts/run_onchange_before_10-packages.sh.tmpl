@@ -13,7 +13,7 @@ sudo pacman -S --needed --noconfirm \
   docker docker-compose docker-buildx \
   ghostty \
   sddm qt6-svg qt6-5compat qt6-declarative \
-  hyprland uwsm \
+  hyprland uwsm noctalia \
   hypridle hyprpolkitagent xdg-desktop-portal-hyprland xdg-desktop-portal-gtk \
   hyprshot cliphist wl-clipboard playerctl brightnessctl \
   thunar gnome-keyring \
@@ -40,11 +40,9 @@ if ! command -v yay >/dev/null 2>&1; then
   rm -rf "$tmp"
 fi
 
-echo "==> Installing AUR packages (yay)…"
-# noctalia-shell ships its own Quickshell build (noctalia-qs), which conflicts
-# with and replaces the official `quickshell` package — so we do NOT install
-# `quickshell` above. --ask answers the replace-conflict prompt automatically.
-yay -S --needed --noconfirm --ask 4 noctalia-shell
+# Noctalia v5+ ships in [extra] as `noctalia` (installed above). The old AUR
+# `noctalia-shell` + `noctalia-qs` (Quickshell fork) are gone from the AUR and
+# broke on every Qt update — do not bring them back.
 
 echo "==> Installing AUR apps (yay)…"
 # visual-studio-code-bin: Microsoft's branded build (Marketplace + proprietary
