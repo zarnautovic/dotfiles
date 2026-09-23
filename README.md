@@ -86,6 +86,24 @@ brew bundle --file=~/Brewfile      # manual — Homebrew packages don't auto-ins
 The Linux/desktop scripts are inert on macOS. What does run there: the SbarLua
 build (`30-sbarlua`) and the herdr install (`40-herdr`) — plus the shared configs.
 
+### macOS maintenance
+
+The Brewfile covers the shared CLI tools and the configured Mac desktop tools,
+including Bash 5.2+ for tmux-powerkit and AeroSpace. PHP, its extensions and FPM
+are managed separately and intentionally excluded from this bootstrap.
+
+On this host PHP CLI and FPM stay pinned to 8.5.5. Do not unpin, reinstall or
+restart them as part of dotfiles maintenance. Node is managed by mise; npm and
+its global tools are installed separately in each active Node installation.
+
+SF Pro 27 fonts on this Mac are installed with Apple's signed installer,
+not the Homebrew cask (the cask upgrade required terminal-only sudo).
+
+Neovim's lazy-lock.json stays local to each host. Update plugins with
+`:Lazy update`. macOS keeps Rosé Pine in Neovim and the built-in Default btop
+theme; Noctalia's recoloring helper is Linux-only. SbarLua records the installed
+revision and rebuilds when the revision in its Mac bootstrap script changes.
+
 ## After first login (Linux)
 
 - **VS Code theme:** Noctalia renders its palette into the Marketplace extension

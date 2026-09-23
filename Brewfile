@@ -1,6 +1,6 @@
 # Brewfile — macOS (Apple Silicon). Run manually:  brew bundle --file=~/Brewfile
-# Mirrors the cross-platform CLI tools from the Linux bootstrap. No desktop/WM
-# packages here — Hyprland/Noctalia are Linux-only.
+# Shared CLI tools plus the desktop tools configured on this Mac.
+# PHP, PHP extensions and FPM are maintained separately; do not add them here.
 
 brew "chezmoi"
 brew "git"
@@ -10,6 +10,7 @@ brew "zoxide"
 brew "fzf"
 brew "bat"
 brew "eza"
+brew "bash"  # tmux-powerkit requires Bash 5.2+
 brew "tmux"
 brew "neovim"
 brew "gum"
@@ -25,3 +26,7 @@ cask "font-jetbrains-mono-nerd-font"
 tap "FelixKratz/formulae"
 brew "sketchybar"
 brew "lua"
+
+# AeroSpace configuration lives in ~/.config/aerospace.
+tap "nikitabobko/tap"
+cask "nikitabobko/tap/aerospace"

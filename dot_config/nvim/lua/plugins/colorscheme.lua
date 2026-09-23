@@ -20,6 +20,7 @@ return {
     "omacom-io/aether.nvim",
     branch = "v3",
     name = "aether",
+    cond = vim.fn.has("macunix") == 0,
     priority = 1000,
     opts = function()
       return { colors = noctalia_colors() or {} }

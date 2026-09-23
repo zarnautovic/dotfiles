@@ -7,6 +7,7 @@ docs
 {{- if ne .chezmoi.os "linux" }}
 .config/hypr
 .config/noctalia
+.local/bin/noctalia-osc-recolor
 {{- end }}
 
 # macOS-only: the Brewfile is for `brew bundle` on darwin; not wanted on Linux.
