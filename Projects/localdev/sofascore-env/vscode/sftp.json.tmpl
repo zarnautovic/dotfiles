@@ -1,0 +1,27 @@
+{{- /* Internal values come from [data.sofascore] in ~/.config/chezmoi/chezmoi.toml (not in this repo). */ -}}
+{
+  "name": "dev ({{ dig "sofascore" "devUser" "SET-data.sofascore.devUser-IN-chezmoi.toml" . }})",
+  "protocol": "sftp",
+  "host": "{{ dig "sofascore" "devHost" "SET-data.sofascore.devHost-IN-chezmoi.toml" . }}",
+  "port": 22,
+  "username": "{{ dig "sofascore" "devUser" "SET-data.sofascore.devUser-IN-chezmoi.toml" . }}",
+  "privateKeyPath": "~/.ssh/id_ed25519",
+  "remotePath": "{{ dig "sofascore" "devWorkspace" "SET-data.sofascore.devWorkspace-IN-chezmoi.toml" . }}",
+  "uploadOnSave": true,
+  "useTempFile": false,
+  "openSsh": false,
+  "ignore": [
+    ".vscode",
+    ".idea",
+    ".git",
+    ".DS_Store",
+    "vendor",
+    "vendor-bin/*/vendor",
+    "var",
+    "node_modules",
+    ".php-cs-fixer.cache",
+    ".phpunit.cache",
+    ".env.local",
+    ".env.test.local"
+  ]
+}

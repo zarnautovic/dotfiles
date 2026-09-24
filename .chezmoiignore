@@ -8,6 +8,9 @@ docs
 .config/hypr
 .config/noctalia
 .local/bin/noctalia-osc-recolor
+# Sofascore PHP tools container + shims. Linux-only for now: on macOS the
+# shims would shadow Homebrew PHP on PATH (see dot_zshrc.tmpl).
+Projects/localdev/sofascore-env
 {{- end }}
 
 # macOS-only: the Brewfile is for `brew bundle` on darwin; not wanted on Linux.

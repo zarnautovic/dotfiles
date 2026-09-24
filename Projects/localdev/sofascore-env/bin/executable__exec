@@ -1,0 +1,49 @@
+#!/bin/sh
+# Shared core for the tool shims. Runs the requested tool inside the
+# long-lived `tools` container, as your UID, in your current directory.
+#
+# Usage (via the wrapper symlinks/scripts): _exec <kind> [args...]
+set -eu
+
+HERE=$(CDPATH= cd -- "$(dirname -- "$(readlink -f -- "$0")")" && pwd)
+ENV_DIR=$(dirname -- "$HERE")
+COMPOSE="$ENV_DIR/compose.dev.yaml"
+REPO=$(sed -n 's/^SOFASCORE_REPO=//p' "$ENV_DIR/.env")
+
+# Only the repo is mounted in the container. Inside it, run where you stand
+# (same-path mount); anywhere else, fall back to the repo root.
+case "$PWD/" in
+  "$REPO"/*) workdir=$PWD ;;
+  *)         workdir=$REPO ;;
+esac
+
+# Vendor tools / bin/console are resolved against the repo root, so they work
+# from any subdirectory (editors like VS Code run the fixer with cwd = the
+# edited file's directory).
+kind=$1
+shift
+
+case "$kind" in
+  console)      set -- php "$REPO/bin/console" "$@" ;;
+  phpstan)      set -- "$REPO/vendor/bin/phpstan" "$@" ;;
+  php-cs-fixer) set -- "$REPO/vendor/bin/php-cs-fixer" "$@" ;;
+  paratest)     set -- "$REPO/vendor/bin/paratest" "$@" ;;
+  php)          set -- php "$@" ;;
+  composer)     set -- composer "$@" ;;
+  *)            set -- "$kind" "$@" ;;
+esac
+
+# Auto-start: if the container isn't running (reboot, `make down`, crash),
+# bring it up first instead of failing — keeps editors and the git pre-commit
+# hook working without a manual `make up`.
+if [ "$(docker inspect -f '{{.State.Running}}' sofascore_tools 2>/dev/null)" != true ]; then
+  echo "sofascore_tools not running — starting it..." >&2
+  docker compose -f "$COMPOSE" up -d tools >&2
+fi
+
+# -T: no TTY (safe for pipes / editor integrations).
+# PHP_CS_FIXER_IGNORE_ENV is forwarded so editor integrations can set it.
+exec docker compose -f "$COMPOSE" exec \
+  -u "$(id -u):$(id -g)" -T -w "$workdir" \
+  ${PHP_CS_FIXER_IGNORE_ENV:+-e PHP_CS_FIXER_IGNORE_ENV="$PHP_CS_FIXER_IGNORE_ENV"} \
+  tools "$@"

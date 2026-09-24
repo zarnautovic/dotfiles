@@ -1,0 +1,28 @@
+{
+  // PHP runs only inside the sofascore_tools container, via the shims in
+  // sofascore-env/bin. Rendered by `make vscode` from sofascore-env/vscode/.
+  // These override any (other-machine) paths that come in through Settings
+  // Sync. .vscode/ is gitignored in the project repo.
+  "php.validate.executablePath": "__ENV_DIR__/bin/php",
+  "php-cs-fixer.executablePath": "__ENV_DIR__/bin/php-cs-fixer",
+  "php-cs-fixer.config": ".php-cs-fixer.dist.php",
+  // The extension formats a temp copy of the file; the default (/tmp) isn't
+  // mounted in the container, so keep temp files inside the gitignored var/.
+  "php-cs-fixer.tmpDir": "__REPO__/var/pcf-tmp",
+  "php-cs-fixer.ignorePHPVersion": true,
+
+  "[php]": {
+    "editor.defaultFormatter": "junstyle.php-cs-fixer",
+    "editor.formatOnSave": true
+  },
+
+  // Keep the explorer/search/watchers off the big generated dirs.
+  "files.watcherExclude": {
+    "**/var/**": true,
+    "**/vendor/**": true,
+    "**/node_modules/**": true
+  },
+  "search.exclude": {
+    "**/var/**": true
+  }
+}

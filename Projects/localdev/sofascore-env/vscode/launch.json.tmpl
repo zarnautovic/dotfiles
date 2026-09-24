@@ -1,0 +1,17 @@
+{{- /* Internal values come from [data.sofascore] in ~/.config/chezmoi/chezmoi.toml (not in this repo). */ -}}
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Web + CLI debugging on the dev server. Requires an open `ssh dev`
+      // session: it carries the reverse-forward 44435 (server) -> 9003 (here).
+      "name": "Listen for Xdebug (dev server)",
+      "type": "php",
+      "request": "launch",
+      "port": 9003,
+      "pathMappings": {
+        "{{ dig "sofascore" "devWorkspace" "SET-data.sofascore.devWorkspace-IN-chezmoi.toml" . }}": "${workspaceFolder}"
+      }
+    }
+  ]
+}

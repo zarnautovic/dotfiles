@@ -1,0 +1,165 @@
+{{- /* Internal values come from [data.sofascore] in ~/.config/chezmoi/chezmoi.toml (not in this repo). */ -}}
+# sofascore-env — local dev environment
+
+Runs everything that *can* run locally — `composer`, `phpstan`, `php-cs-fixer`,
+the test suite, `bin/console` — inside a throwaway container, so the host stays
+clean (no PHP installed). The browser-facing app runs on the remote dev server.
+
+This folder lives **outside** the project repo and is never committed to it.
+Nothing here modifies any tracked project file. The folder is managed by
+**chezmoi** (dotfiles repo, source: `~/.local/share/chezmoi/Projects/localdev/sofascore-env/`,
+Linux-only via `.chezmoiignore`), so a new machine gets it from `chezmoi apply`.
+Edit the chezmoi source (`chezmoi edit <file>`), not the deployed copy.
+
+---
+
+## Architecture — where things run
+
+| Layer | What | Name / location |
+|---|---|---|
+| **Host (clean)** | nvim/tmux, VS Code, git, Docker, NetBird, node/npm + intelephense | your machine — no PHP |
+| **Tools container** | PHP 8.5 + Composer + phpstan/cs-fixer/paratest | `sofascore_tools` (this `compose.dev.yaml`) |
+| **Test services** | postgres · redis · elasticsearch · beanstalk | 4 containers from the repo's `compose.test-local.yaml` |
+| **Dev server** | the running web app | `ssh dev` → `{{ dig "sofascore" "devWorkspace" "SET-data.sofascore.devWorkspace-IN-chezmoi.toml" . }}` → {{ dig "sofascore" "appUrl" "SET-data.sofascore.appUrl-IN-chezmoi.toml" . }} |
+
+## What's in this folder
+
+| File | Purpose |
+|---|---|
+| `compose.dev.yaml` | The `tools` container: PHP 8.5 + Composer. Host networking + same-path bind mount, runs as your UID. |
+| `.env` | `SOFASCORE_REPO` — rendered by chezmoi from `dot_env.tmpl` (per-OS path). |
+| `vscode/` | VS Code templates (settings / sftp / launch) — `make vscode` renders them into the repo's gitignored `.vscode/`. |
+| `Makefile` | `up`, `down`, `shell`, `install`, `phpstan`, `cs`, `test`, `test-up`, `test-down`, `vscode` (`make help`). |
+| `bin/` | PATH shims: `php`, `composer`, `phpstan`, `php-cs-fixer`, `paratest`, `console`. They auto-start the container if it's down, and resolve `vendor/bin/*` against the repo root (work from any subdir). |
+
+---
+
+## One-time setup (new machine)
+
+```sh
+# 0. Host prereqs: Docker (service enabled), NetBird, VS Code, your shell. NO PHP needed.
+# 1. Clone the project to the path in dot_env.tmpl, then `chezmoi apply`:
+#    deploys this folder AND puts bin/ on PATH (dot_zshrc.tmpl).
+# 2. Build + start the tools container and install deps:
+cd ~/Projects/localdev/sofascore-env
+make up
+make install            # composer install -> writes the gitignored vendor/
+make vscode             # .vscode/{settings,sftp,launch}.json for this machine
+```
+
+Open a **new** shell afterwards so the shims are on `PATH`.
+
+---
+
+## Everyday commands
+
+> The shims run inside the `sofascore_tools` container automatically.
+> Run them from **anywhere inside the repo**. If the container is down they start it
+> first (and it has `restart: unless-stopped`, so it survives reboots).
+
+### Container lifecycle (run from this folder, or `make -C ~/Projects/localdev/sofascore-env <t>`)
+```sh
+make up           # build if needed + start the tools container
+make down         # stop & remove it
+make restart      # recreate it
+make build        # rebuild the image
+make shell        # interactive bash shell inside the container
+make help         # list all targets
+```
+
+### Composer
+```sh
+composer install              # install deps (writes ./vendor)
+composer require vendor/pkg   # add a dependency
+composer update               # update deps
+composer dump-autoload
+```
+
+### Static analysis & code style
+```sh
+composer phpstan              # project config (phpstan-ci.dist.neon)
+composer phpstan-editor       # editor config
+composer phpstan-shared       # shared-bundle config
+composer linter fix           # php-cs-fixer — apply fixes
+composer linter fix -- --dry-run --diff   # check only, no changes
+composer linter-twig          # twig-cs-fixer
+# NOTE: the git pre-commit hook already runs php-cs-fixer on staged files.
+# (make phpstan / make cs ARGS="fix" are convenience wrappers for the above.)
+```
+
+### Console
+```sh
+php bin/console <command>     # e.g. php bin/console cache:clear
+console <command>             # shim shortcut for `php bin/console`
+```
+
+### Tests
+```sh
+# Bring the 4 test services up on the HOST (uses the repo's compose.test-local.yaml).
+# Do NOT run `composer docker:test:up` through the shim — it calls docker, and there
+# is no docker inside the container. Use the make target instead:
+make test-up
+
+composer test                 # full project suite (paratest, ~2446 test files — slow)
+composer test-shared          # quick shared suite (~151 unit tests, ~0.1s)
+composer test-editor          # editor test suite
+composer test -- path/to/SomeTest.php   # a targeted slice
+
+make test-down                # stop the test services when done
+make test                     # convenience: test-up + composer test
+```
+
+### Sync to the dev server & run the app
+```sh
+# Option A: VS Code (natizyskunk.sftp, .vscode/sftp.json) uploads each file on save.
+#           Branch switches / git pull are NOT uploaded — use Option B after those.
+# Option B: from the terminal:
+util/toolbox.sh push-changes                   # push your local state to {{ dig "sofascore" "devWorkspace" "SET-data.sofascore.devWorkspace-IN-chezmoi.toml" . }}
+util/toolbox.sh push-changes refresh-caches    # + rebuild & pull vendor/var-cache back for the IDE
+util/toolbox.sh open-environment               # open the app in the browser
+
+ssh dev                                         # SSH in (also opens the Xdebug reverse-tunnel)
+#   cd {{ dig "sofascore" "devWorkspace" "SET-data.sofascore.devWorkspace-IN-chezmoi.toml" . }} && git pull     # update the workspace (agent-forwarded GitHub auth)
+
+# App URL:  {{ dig "sofascore" "appUrl" "SET-data.sofascore.appUrl-IN-chezmoi.toml" . }}
+```
+
+### Xdebug
+```sh
+# WEB:  VS Code Run & Debug -> "Listen for Xdebug (dev server)" (port 9003)
+#       + Xdebug Helper browser extension.
+#       `ssh dev` must be active (it carries the reverse-forward 44435 -> 9003).
+# CLI:  on the dev server, prefix the command with the alias:
+#       xdebug bin/console your:command
+```
+
+---
+
+## Names (for `docker ps`)
+
+| Container | Role |
+|---|---|
+| `sofascore_tools` | **your** PHP tools/test container (this `compose.dev.yaml`) |
+| `sofascore_test_database` / `_redis` / `_elasticsearch` / `_beanstalk` | the repo's test services |
+
+---
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| `zsh: command not found: composer` | Stale shell — `source ~/.zshrc.local` or open a new pane. |
+| Shim error `no such container: sofascore_tools` | Shims auto-start it; if that fails, run `make up` to see the build error. |
+| VS Code format-on-save does nothing | Output panel → "php-cs-fixer". Check `.vscode/settings.json` paths (`make vscode` on a new machine). |
+| Files written by the container are root-owned | Shouldn't happen (runs as your UID); if it does, `make down && make up`. |
+| `composer docker:test:up` fails | Don't run it via the shim — use `make test-up` (docker runs on the host). |
+| Xdebug: `remote port forwarding failed for listen port 44435` | Another machine (the Mac) holds the port. Close its `ssh dev`, then reconnect. Only one machine debugs web at a time. |
+| ES queries fail right after `make test-up` | Give Elasticsearch a few seconds to become ready. |
+
+---
+
+## Notes / constraints
+- **No PHP on the host** — all PHP runs in `sofascore_tools`.
+- **The project repo is never modified**; nothing is committed to it. Machine-local config lives in `~/.zshrc.local` (not `~/.zshrc`, which is chezmoi-managed) and in this folder.
+- **NetBird** gives direct access to the dev DB/Elastic/etc.; DB clients connect straight to Postgres (no SSH tunnel). SSH itself still goes over the public IP.
+- The official SofaScore dev workflow (`{{ dig "sofascore" "setupDoc" "SET-data.sofascore.setupDoc-IN-chezmoi.toml" . }}`) is remote-server-based; this setup keeps that model and only moves the *tooling* into a local container.

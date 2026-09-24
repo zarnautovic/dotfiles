@@ -21,6 +21,12 @@ Cross-platform: **Arch Linux (Hyprland + Noctalia)** and **macOS (Apple Silicon)
 - **Hyprland** (`.config/hypr/`) — `hyprland.lua`, `hypridle.conf`, per-host `monitors.lua`
 - **Noctalia** (`.config/noctalia/config.toml`) — the v5 native-Wayland desktop shell
   (bar, launcher, notifications, lock screen, OSD, wallpaper, app theming).
+- **sofascore-env** (`Projects/localdev/sofascore-env/`) — containerized PHP tooling for
+  SofaScore Web: tools container, `php`/`composer`/`phpstan`/… shims (on PATH via `.zshrc`),
+  Makefile, VS Code templates. See its own README. Internal hostnames/paths are NOT in
+  this repo: set `[data.sofascore]` (`devHost`, `devUser`, `devWorkspace`, `appUrl`,
+  `setupDoc`) in the machine-local `~/.config/chezmoi/chezmoi.toml`; missing keys render
+  as `SET-data.sofascore.<key>-IN-chezmoi.toml` placeholders.
 
 ## Architecture
 

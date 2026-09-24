@@ -1,0 +1,43 @@
+name: sofascore_dev_tools
+
+# Local "tools" container: PHP 8.5 + extensions + Composer.
+# Runs composer / phpstan / php-cs-fixer / paratest / bin/console locally,
+# while the browser-facing app keeps running on the remote dev server.
+#
+#  - network_mode: host  -> reaches the test services (postgres 5555, redis 6380,
+#    es 9201, beanstalk 11301) at the localhost ports the repo's .env.test expects.
+#  - same-path bind mount -> container path == host path, so paths line up in
+#    error output, quickfix, and any config that references absolute paths.
+#  - commands are exec'd as your UID (see bin/ shims and the Makefile), so files
+#    written by composer/console (vendor/, var/) are owned by you, not root.
+
+services:
+  tools:
+    container_name: sofascore_tools
+    build:
+      # Tiny context (this dir) — the Dockerfile COPYs nothing; the repo is
+      # bind-mounted at runtime, not baked into the image.
+      context: .
+      dockerfile_inline: |
+        FROM php:8.5-cli-bookworm
+        RUN curl -sSLfo /usr/local/bin/install-php-extensions \
+              https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions \
+            && chmod +x /usr/local/bin/install-php-extensions \
+            && install-php-extensions \
+                 amqp apcu bcmath calendar ftp imagick intl mbstring opcache \
+                 pcntl pdo_pgsql sockets sodium sysvshm uuid zip @composer \
+            && apt-get update \
+            && apt-get install -y --no-install-recommends git unzip \
+            && rm -rf /var/lib/apt/lists/*
+        ENV HOME=/tmp \
+            COMPOSER_HOME=/tmp/.composer \
+            COMPOSER_ALLOW_SUPERUSER=1
+    working_dir: ${SOFASCORE_REPO}
+    network_mode: host
+    volumes:
+      - ${SOFASCORE_REPO}:${SOFASCORE_REPO}
+      - ./php.ini:/usr/local/etc/php/conf.d/zz-local.ini:ro
+    command: ["sleep", "infinity"]
+    # Come back after reboots (docker.service is enabled). The bin/ shims also
+    # auto-start it on next use, so a manual `make up` is never required.
+    restart: unless-stopped

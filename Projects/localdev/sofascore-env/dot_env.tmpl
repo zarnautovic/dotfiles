@@ -1,0 +1,5 @@
+# Absolute path to the SofaScore Web repo on THIS machine (rendered by chezmoi).
+# Same path is used inside the container (same-path mount) so the repo's
+# committed .env.* files (which point at localhost services) work unchanged.
+# Different checkout location? Change it here in the chezmoi source.
+SOFASCORE_REPO={{ .chezmoi.homeDir }}/Projects/Sofascore/web
