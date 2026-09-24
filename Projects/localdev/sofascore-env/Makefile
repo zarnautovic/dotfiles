@@ -5,6 +5,11 @@
 include .env
 export
 
+# Pin the image to what the project itself ships (prod Dockerfile ARGs), so
+# `make build` follows PHP / extension-installer bumps in the repo.
+PHP_VERSION                     := $(shell sed -n 's/^ARG PHP_VERSION=//p' $(SOFASCORE_REPO)/Dockerfile)
+PHP_EXTENSION_INSTALLER_VERSION := $(shell sed -n 's/^ARG PHP_EXTENSION_INSTALLER_VERSION=//p' $(SOFASCORE_REPO)/Dockerfile)
+
 COMPOSE := docker compose -f compose.dev.yaml
 EXEC    := $(COMPOSE) exec -u $(shell id -u):$(shell id -g) -w $(SOFASCORE_REPO) tools
 
@@ -17,16 +22,18 @@ TEST    := docker compose \
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build up down restart shell install phpstan cs test test-up test-down vscode
+.PHONY: help build up down restart shell install phpstan cs test test-up test-down vscode doctor
 
 help: ## Show this help
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-11s\033[0m %s\n", $$1, $$2}'
 
-build: ## Build the tools image
+build: ## Build the tools image (PHP + installer versions from the repo's Dockerfile)
+	@echo "PHP $(PHP_VERSION), extension installer $(PHP_EXTENSION_INSTALLER_VERSION)"
 	$(COMPOSE) build
 
-up: ## Start the tools container (build if needed)
+up: ## Build (if the repo's versions changed) + (re)start the tools container
+	@echo "PHP $(PHP_VERSION), extension installer $(PHP_EXTENSION_INSTALLER_VERSION)"
 	$(COMPOSE) up -d --build
 
 down: ## Stop & remove the tools container
@@ -46,10 +53,10 @@ phpstan: ## composer phpstan
 cs: ## php-cs-fixer — pass args, e.g. make cs ARGS="fix" or ARGS="fix --dry-run --diff"
 	$(EXEC) composer linter -- $(ARGS)
 
-test-up: ## Start test services (postgres/redis/es/beanstalk)
+test-up: ## Start test services (postgres/redis/es/beanstalk) — also what `composer docker:test:up` runs
 	$(TEST) up -d
 
-test-down: ## Stop test services
+test-down: ## Stop test services — also what `composer docker:test:down` runs
 	$(TEST) down
 
 test: test-up ## Run the test suite (brings test services up first)
@@ -63,3 +70,6 @@ vscode: ## Render vscode/*.json into the repo's (gitignored) .vscode/ — skips 
 		sed -e "s#__REPO__#$(SOFASCORE_REPO)#g" -e "s#__ENV_DIR__#$(CURDIR)#g" $$f > $$dst; \
 		echo "wrote  $$dst"; \
 	done
+
+doctor: ## Check the local setup: container, PHP version/ini, platform reqs, test services
+	@./doctor.sh

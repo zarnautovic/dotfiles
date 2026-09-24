@@ -18,7 +18,7 @@ Edit the chezmoi source (`chezmoi edit <file>`), not the deployed copy.
 | Layer | What | Name / location |
 |---|---|---|
 | **Host (clean)** | nvim/tmux, VS Code, git, Docker, NetBird, node/npm + intelephense | your machine — no PHP |
-| **Tools container** | PHP 8.5 + Composer + phpstan/cs-fixer/paratest | `sofascore_tools` (this `compose.dev.yaml`) |
+| **Tools container** | PHP (version pinned from the repo's `Dockerfile`) + Composer + phpstan/cs-fixer/paratest | `sofascore_tools` (this `compose.dev.yaml`) |
 | **Test services** | postgres · redis · elasticsearch · beanstalk | 4 containers from the repo's `compose.test-local.yaml` |
 | **Dev server** | the running web app | `ssh dev` → `{{ dig "sofascore" "devWorkspace" "SET-data.sofascore.devWorkspace-IN-chezmoi.toml" . }}` → {{ dig "sofascore" "appUrl" "SET-data.sofascore.appUrl-IN-chezmoi.toml" . }} |
 
@@ -26,10 +26,12 @@ Edit the chezmoi source (`chezmoi edit <file>`), not the deployed copy.
 
 | File | Purpose |
 |---|---|
-| `compose.dev.yaml` | The `tools` container: PHP 8.5 + Composer. Host networking + same-path bind mount, runs as your UID. |
+| `compose.dev.yaml` | The `tools` container: PHP + Composer. Host networking + same-path bind mount, runs as your UID. Mounts the repo's `docker/base/php/99-sofa.ini`. |
+| `php.ini` | Local overrides on top of `99-sofa.ini` (mounted as `zz-local.ini`; empty by default = parity with the project). |
+| `doctor.sh` | Setup health check (`make doctor`). |
 | `.env` | `SOFASCORE_REPO` — rendered by chezmoi from `dot_env.tmpl` (per-OS path). |
 | `vscode/` | VS Code templates (settings / sftp / launch) — `make vscode` renders them into the repo's gitignored `.vscode/`. |
-| `Makefile` | `up`, `down`, `shell`, `install`, `phpstan`, `cs`, `test`, `test-up`, `test-down`, `vscode` (`make help`). |
+| `Makefile` | `up`, `down`, `shell`, `install`, `phpstan`, `cs`, `test`, `test-up`, `test-down`, `vscode`, `doctor` (`make help`). Reads `PHP_VERSION` / `PHP_EXTENSION_INSTALLER_VERSION` from the repo's `Dockerfile`. |
 | `bin/` | PATH shims: `php`, `composer`, `phpstan`, `php-cs-fixer`, `paratest`, `console`. They auto-start the container if it's down, and resolve `vendor/bin/*` against the repo root (work from any subdir). |
 
 ---
@@ -45,6 +47,7 @@ cd ~/Projects/localdev/sofascore-env
 make up
 make install            # composer install -> writes the gitignored vendor/
 make vscode             # .vscode/{settings,sftp,launch}.json for this machine
+make doctor             # verify everything
 ```
 
 Open a **new** shell afterwards so the shims are on `PATH`.
@@ -59,7 +62,10 @@ Open a **new** shell afterwards so the shims are on `PATH`.
 
 ### Container lifecycle (run from this folder, or `make -C ~/Projects/localdev/sofascore-env <t>`)
 ```sh
-make up           # build if needed + start the tools container
+make up           # (re)build with the repo's PHP/installer versions + start — run after
+                  # the repo bumps PHP (make doctor tells you)
+make doctor       # health check: container, PHP version vs repo, APCu/timezone,
+                  # composer platform reqs, vendor freshness, test service ports
 make down         # stop & remove it
 make restart      # recreate it
 make build        # rebuild the image
@@ -96,8 +102,8 @@ console <command>             # shim shortcut for `php bin/console`
 ### Tests
 ```sh
 # Bring the 4 test services up on the HOST (uses the repo's compose.test-local.yaml).
-# Do NOT run `composer docker:test:up` through the shim — it calls docker, and there
-# is no docker inside the container. Use the make target instead:
+# `composer docker:test:up` / `docker:test:down` (what AGENTS.md says) work too: the
+# composer shim intercepts them and runs these make targets on the host.
 make test-up
 
 composer test                 # full project suite (paratest, ~2446 test files — slow)
@@ -149,10 +155,11 @@ ssh dev                                         # SSH in (also opens the Xdebug 
 | Symptom | Fix |
 |---|---|
 | `zsh: command not found: composer` | Stale shell — `source ~/.zshrc.local` or open a new pane. |
-| Shim error `no such container: sofascore_tools` | Shims auto-start it; if that fails, run `make up` to see the build error. |
 | VS Code format-on-save does nothing | Output panel → "php-cs-fixer". Check `.vscode/settings.json` paths (`make vscode` on a new machine). |
 | Files written by the container are root-owned | Shouldn't happen (runs as your UID); if it does, `make down && make up`. |
-| `composer docker:test:up` fails | Don't run it via the shim — use `make test-up` (docker runs on the host). |
+| `Could not start sofascore_tools. Build it first` | The image is missing (new machine / pruned). Shims never build — run `make up`. |
+| Edited `php.ini` but PHP doesn't see it | chezmoi replaces the file, and a single-file bind mount keeps the old inode — `docker restart sofascore_tools`. |
+| `make doctor` warns PHP version mismatch | The repo bumped `PHP_VERSION` in its Dockerfile — `make up` rebuilds with it. |
 | Xdebug: `remote port forwarding failed for listen port 44435` | Another machine (the Mac) holds the port. Close its `ssh dev`, then reconnect. Only one machine debugs web at a time. |
 | ES queries fail right after `make test-up` | Give Elasticsearch a few seconds to become ready. |
 

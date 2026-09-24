@@ -10,6 +10,9 @@ name: sofascore_dev_tools
 #    error output, quickfix, and any config that references absolute paths.
 #  - commands are exec'd as your UID (see bin/ shims and the Makefile), so files
 #    written by composer/console (vendor/, var/) are owned by you, not root.
+#  - PHP + extension-installer versions and the PHP ini come from the project
+#    repo itself (Dockerfile ARGs via the Makefile, docker/base/php/99-sofa.ini),
+#    so this container tracks what prod/CI run instead of drifting.
 
 services:
   tools:
@@ -18,14 +21,25 @@ services:
       # Tiny context (this dir) — the Dockerfile COPYs nothing; the repo is
       # bind-mounted at runtime, not baked into the image.
       context: .
+      # Set by `make build`/`make up` from the repo's Dockerfile. The defaults
+      # only matter for a bare `docker compose build` outside the Makefile.
+      args:
+        PHP_VERSION: ${PHP_VERSION:-8.5}
+        PHP_EXTENSION_INSTALLER_VERSION: ${PHP_EXTENSION_INSTALLER_VERSION:-latest}
       dockerfile_inline: |
-        FROM php:8.5-cli-bookworm
-        RUN curl -sSLfo /usr/local/bin/install-php-extensions \
-              https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions \
+        ARG PHP_VERSION
+        FROM php:$${PHP_VERSION}-cli-bookworm
+        ARG PHP_EXTENSION_INSTALLER_VERSION
+        RUN if [ "$${PHP_EXTENSION_INSTALLER_VERSION}" = latest ]; then \
+              url=https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions; \
+            else \
+              url=https://github.com/mlocati/docker-php-extension-installer/releases/download/$${PHP_EXTENSION_INSTALLER_VERSION}/install-php-extensions; \
+            fi \
+            && curl -sSLfo /usr/local/bin/install-php-extensions "$$url" \
             && chmod +x /usr/local/bin/install-php-extensions \
             && install-php-extensions \
                  amqp apcu bcmath calendar ftp imagick intl mbstring opcache \
-                 pcntl pdo_pgsql sockets sodium sysvshm uuid zip @composer \
+                 pcntl pdo_pgsql pdo_mysql sockets sodium sysvshm uuid zip @composer \
             && apt-get update \
             && apt-get install -y --no-install-recommends git unzip \
             && rm -rf /var/lib/apt/lists/*
@@ -36,8 +50,12 @@ services:
     network_mode: host
     volumes:
       - ${SOFASCORE_REPO}:${SOFASCORE_REPO}
+      # The project's own PHP settings (apc.enable_cli, date.timezone=UTC,
+      # memory_limit, opcache…), then local CLI overrides on top.
+      - ${SOFASCORE_REPO}/docker/base/php/99-sofa.ini:/usr/local/etc/php/conf.d/99-sofa.ini:ro
       - ./php.ini:/usr/local/etc/php/conf.d/zz-local.ini:ro
     command: ["sleep", "infinity"]
     # Come back after reboots (docker.service is enabled). The bin/ shims also
-    # auto-start it on next use, so a manual `make up` is never required.
+    # start it on next use (without building), so `make up` is only needed
+    # after changing the image.
     restart: unless-stopped

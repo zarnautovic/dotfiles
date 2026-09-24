@@ -29,16 +29,30 @@ case "$kind" in
   php-cs-fixer) set -- "$REPO/vendor/bin/php-cs-fixer" "$@" ;;
   paratest)     set -- "$REPO/vendor/bin/paratest" "$@" ;;
   php)          set -- php "$@" ;;
-  composer)     set -- composer "$@" ;;
+  composer)
+    # The project's docker:test:* scripts call docker, which doesn't exist in
+    # the container — run the equivalent on the host instead.
+    case "${1:-}" in
+      docker:test:up)   exec make -s -C "$ENV_DIR" test-up ;;
+      docker:test:down) exec make -s -C "$ENV_DIR" test-down ;;
+    esac
+    set -- composer "$@" ;;
   *)            set -- "$kind" "$@" ;;
 esac
 
 # Auto-start: if the container isn't running (reboot, `make down`, crash),
-# bring it up first instead of failing — keeps editors and the git pre-commit
-# hook working without a manual `make up`.
+# start it first instead of failing — keeps editors and the git pre-commit
+# hook working. Never builds: a missing image would otherwise turn an editor's
+# format-on-save into a silent multi-minute build.
 if [ "$(docker inspect -f '{{.State.Running}}' sofascore_tools 2>/dev/null)" != true ]; then
   echo "sofascore_tools not running — starting it..." >&2
-  docker compose -f "$COMPOSE" up -d tools >&2
+  # Output is captured (not streamed) so a closed pipe on our stderr can't
+  # SIGPIPE compose halfway through and leave the container created-but-stopped.
+  if ! out=$(docker compose -f "$COMPOSE" up -d --no-build tools 2>&1); then
+    printf '%s\n' "$out" >&2
+    echo "Could not start sofascore_tools. Build it first: make -C $ENV_DIR up" >&2
+    exit 1
+  fi
 fi
 
 # -T: no TTY (safe for pipes / editor integrations).
