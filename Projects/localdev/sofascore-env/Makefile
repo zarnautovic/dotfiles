@@ -5,10 +5,21 @@
 include .env
 export
 
-# Pin the image to what the project itself ships (prod Dockerfile ARGs), so
-# `make build` follows PHP / extension-installer bumps in the repo.
-PHP_VERSION                     := $(shell sed -n 's/^ARG PHP_VERSION=//p' $(SOFASCORE_REPO)/Dockerfile)
-PHP_EXTENSION_INSTALLER_VERSION := $(shell sed -n 's/^ARG PHP_EXTENSION_INSTALLER_VERSION=//p' $(SOFASCORE_REPO)/Dockerfile)
+# Everything the image is built from is parsed out of the project repo, so
+# `make up` follows the repo: PHP version + Debian release from the prod
+# Dockerfile, extensions and system packages from docker/base/install.sh.
+DOCKERFILE := $(SOFASCORE_REPO)/Dockerfile
+INSTALL_SH := $(SOFASCORE_REPO)/docker/base/install.sh
+PHP_VERSION                     := $(shell sed -n 's/^ARG PHP_VERSION=//p' $(DOCKERFILE))
+PHP_EXTENSION_INSTALLER_VERSION := $(shell sed -n 's/^ARG PHP_EXTENSION_INSTALLER_VERSION=//p' $(DOCKERFILE))
+PHP_DEBIAN                      := $(shell sed -n 's/^FROM php:.*-fpm-\([a-z]*\).*/\1/p' $(DOCKERFILE))
+PHP_EXTENSIONS                  := $(shell sed -n 's/^install-php-extensions //p' $(INSTALL_SH))
+IMAGEMAGICK_VERSION             := $(shell sed -n "s/^readonly IMAGEMAGICK_VERSION='\(.*\)'/\1/p" $(INSTALL_SH))
+# URL of `curl ... /tmp/<name>.deb "<url>"` in install.sh, with its variables filled in.
+deb_url = $(shell sed -n 's|.*/tmp/$(1)\.deb "\(.*\)".*|\1|p' $(INSTALL_SH) | \
+            sed -e 's|\$${IMAGEMAGICK_VERSION}|$(IMAGEMAGICK_VERSION)|g' -e 's|\$${OS_CODENAME}|$(PHP_DEBIAN)|g')
+IMAGEMAGICK_DEB_URL             := $(call deb_url,imagemagick)
+WKHTMLTOX_DEB_URL               := $(call deb_url,wkhtmltox)
 
 COMPOSE := docker compose -f compose.dev.yaml
 EXEC    := $(COMPOSE) exec -u $(shell id -u):$(shell id -g) -w $(SOFASCORE_REPO) tools
@@ -22,18 +33,18 @@ TEST    := docker compose \
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build up down restart shell install phpstan cs test test-up test-down vscode doctor
+.PHONY: versions help build up down restart shell install phpstan cs test test-up test-down vscode doctor
 
 help: ## Show this help
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-11s\033[0m %s\n", $$1, $$2}'
 
-build: ## Build the tools image (PHP + installer versions from the repo's Dockerfile)
-	@echo "PHP $(PHP_VERSION), extension installer $(PHP_EXTENSION_INSTALLER_VERSION)"
+build: ## Build the tools image from the repo's Dockerfile + docker/base/install.sh
+	@$(MAKE) -s versions
 	$(COMPOSE) build
 
 up: ## Build (if the repo's versions changed) + (re)start the tools container
-	@echo "PHP $(PHP_VERSION), extension installer $(PHP_EXTENSION_INSTALLER_VERSION)"
+	@$(MAKE) -s versions
 	$(COMPOSE) up -d --build
 
 down: ## Stop & remove the tools container
@@ -73,3 +84,10 @@ vscode: ## Render vscode/*.json into the repo's (gitignored) .vscode/ — skips 
 
 doctor: ## Check the local setup: container, PHP version/ini, platform reqs, test services
 	@./doctor.sh
+
+versions: ## Show what the image is built from (parsed from the project repo)
+	@echo "PHP              $(PHP_VERSION) ($(PHP_DEBIAN))"
+	@echo "ext installer    $(PHP_EXTENSION_INSTALLER_VERSION)"
+	@echo "extensions       $(PHP_EXTENSIONS) imagick"
+	@echo "ImageMagick      $(IMAGEMAGICK_VERSION)"
+	@echo "wkhtmltox        $(notdir $(WKHTMLTOX_DEB_URL))"

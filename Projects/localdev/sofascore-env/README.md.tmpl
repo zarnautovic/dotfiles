@@ -26,12 +26,12 @@ Edit the chezmoi source (`chezmoi edit <file>`), not the deployed copy.
 
 | File | Purpose |
 |---|---|
-| `compose.dev.yaml` | The `tools` container: PHP + Composer. Host networking + same-path bind mount, runs as your UID. Mounts the repo's `docker/base/php/99-sofa.ini`. |
+| `compose.dev.yaml` | The `tools` container: PHP + Composer. Host networking + same-path bind mount, runs as your UID. Mounts the repo's `docker/base/php/99-sofa.ini`. The image mirrors `docker/base/install.sh` minus server bits (nginx/runit/fpm/New Relic): same extensions, imagick on the project's ImageMagick 7, wkhtmltopdf, pngquant. |
 | `php.ini` | Local overrides on top of `99-sofa.ini` (mounted as `zz-local.ini`; empty by default = parity with the project). |
 | `doctor.sh` | Setup health check (`make doctor`). |
 | `.env` | `SOFASCORE_REPO` — rendered by chezmoi from `dot_env.tmpl` (per-OS path). |
 | `vscode/` | VS Code templates (settings / sftp / launch) — `make vscode` renders them into the repo's gitignored `.vscode/`. |
-| `Makefile` | `up`, `down`, `shell`, `install`, `phpstan`, `cs`, `test`, `test-up`, `test-down`, `vscode`, `doctor` (`make help`). Reads `PHP_VERSION` / `PHP_EXTENSION_INSTALLER_VERSION` from the repo's `Dockerfile`. |
+| `Makefile` | `up`, `down`, `shell`, `install`, `phpstan`, `cs`, `test`, `test-up`, `test-down`, `vscode`, `doctor` (`make help`). Parses everything the image is built from out of the repo (`Dockerfile`: PHP version, Debian release, installer version; `install.sh`: extensions, ImageMagick + wkhtmltox packages) — `make versions` shows it. |
 | `bin/` | PATH shims: `php`, `composer`, `phpstan`, `php-cs-fixer`, `paratest`, `console`. They auto-start the container if it's down, and resolve `vendor/bin/*` against the repo root (work from any subdir). |
 
 ---
@@ -64,8 +64,10 @@ Open a **new** shell afterwards so the shims are on `PATH`.
 ```sh
 make up           # (re)build with the repo's PHP/installer versions + start — run after
                   # the repo bumps PHP (make doctor tells you)
-make doctor       # health check: container, PHP version vs repo, APCu/timezone,
-                  # composer platform reqs, vendor freshness, test service ports
+make doctor       # health check: container, PHP + ImageMagick version and extensions vs
+                  # the repo, APCu/timezone, composer platform reqs, vendor freshness,
+                  # test service ports
+make versions     # what the image is built from (parsed from the repo)
 make down         # stop & remove it
 make restart      # recreate it
 make build        # rebuild the image
@@ -159,7 +161,7 @@ ssh dev                                         # SSH in (also opens the Xdebug 
 | Files written by the container are root-owned | Shouldn't happen (runs as your UID); if it does, `make down && make up`. |
 | `Could not start sofascore_tools. Build it first` | The image is missing (new machine / pruned). Shims never build — run `make up`. |
 | Edited `php.ini` but PHP doesn't see it | chezmoi replaces the file, and a single-file bind mount keeps the old inode — `docker restart sofascore_tools`. |
-| `make doctor` warns PHP version mismatch | The repo bumped `PHP_VERSION` in its Dockerfile — `make up` rebuilds with it. |
+| `make doctor` warns about PHP / ImageMagick version or missing extensions | The repo changed its `Dockerfile` or `docker/base/install.sh` — `make up` rebuilds from it. |
 | Xdebug: `remote port forwarding failed for listen port 44435` | Another machine (the Mac) holds the port. Close its `ssh dev`, then reconnect. Only one machine debugs web at a time. |
 | ES queries fail right after `make test-up` | Give Elasticsearch a few seconds to become ready. |
 

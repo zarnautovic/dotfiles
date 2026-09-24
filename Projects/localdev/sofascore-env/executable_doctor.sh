@@ -37,6 +37,20 @@ fi
 
 [ "$(tools php -r 'echo (int) (function_exists("apcu_enabled") && apcu_enabled());')" = 1 ] \
   && ok "APCu enabled for CLI" || fail "APCu not enabled for CLI (is docker/base/php/99-sofa.ini mounted?)"
+install_sh="$REPO/docker/base/install.sh"
+wanted_ext=$(sed -n 's/^install-php-extensions //p' "$install_sh" | tr ' ' '\n' | grep -v '^@')
+loaded=$(tools php -m | tr 'A-Z' 'a-z')
+missing=$(for e in $wanted_ext imagick; do
+  grep -qx "$e" <<<"$loaded" || { [ "$e" = opcache ] && grep -qx 'zend opcache' <<<"$loaded"; } || echo "$e"
+done | xargs)
+[ -z "$missing" ] && ok "all extensions from docker/base/install.sh loaded" \
+  || warn "missing extensions vs install.sh: $missing — make up"
+
+want_im=$(sed -n "s/^readonly IMAGEMAGICK_VERSION='\(.*\)'/\1/p" "$install_sh")
+have_im=$(tools php -r 'echo class_exists("Imagick") ? explode(" ", Imagick::getVersion()["versionString"])[1] : "none";')
+[ "$have_im" = "$want_im" ] && ok "imagick on ImageMagick $have_im (matches install.sh)" \
+  || warn "imagick on ImageMagick $have_im, install.sh wants $want_im — make up"
+
 tz=$(tools php -r 'echo ini_get("date.timezone");')
 [ "$tz" = UTC ] && ok "date.timezone=UTC" || fail "date.timezone='$tz', expected UTC"
 

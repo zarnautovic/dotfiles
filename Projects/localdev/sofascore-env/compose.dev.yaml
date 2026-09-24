@@ -10,9 +10,9 @@ name: sofascore_dev_tools
 #    error output, quickfix, and any config that references absolute paths.
 #  - commands are exec'd as your UID (see bin/ shims and the Makefile), so files
 #    written by composer/console (vendor/, var/) are owned by you, not root.
-#  - PHP + extension-installer versions and the PHP ini come from the project
-#    repo itself (Dockerfile ARGs via the Makefile, docker/base/php/99-sofa.ini),
-#    so this container tracks what prod/CI run instead of drifting.
+#  - PHP version, extensions and PHP ini come from the project repo itself
+#    (Dockerfile + docker/base/install.sh via the Makefile, and the mounted
+#    docker/base/php/99-sofa.ini), so this container tracks prod instead of drifting.
 
 services:
   tools:
@@ -21,28 +21,46 @@ services:
       # Tiny context (this dir) — the Dockerfile COPYs nothing; the repo is
       # bind-mounted at runtime, not baked into the image.
       context: .
-      # Set by `make build`/`make up` from the repo's Dockerfile. The defaults
-      # only matter for a bare `docker compose build` outside the Makefile.
+      # All set by `make build`/`make up`, parsed from the project repo itself
+      # (Dockerfile + docker/base/install.sh), so the image follows the repo.
+      # Build only through the Makefile; the shims never build.
       args:
-        PHP_VERSION: ${PHP_VERSION:-8.5}
-        PHP_EXTENSION_INSTALLER_VERSION: ${PHP_EXTENSION_INSTALLER_VERSION:-latest}
+        PHP_VERSION: ${PHP_VERSION:-}
+        PHP_DEBIAN: ${PHP_DEBIAN:-}
+        PHP_EXTENSION_INSTALLER_VERSION: ${PHP_EXTENSION_INSTALLER_VERSION:-}
+        PHP_EXTENSIONS: ${PHP_EXTENSIONS:-}
+        IMAGEMAGICK_DEB_URL: ${IMAGEMAGICK_DEB_URL:-}
+        WKHTMLTOX_DEB_URL: ${WKHTMLTOX_DEB_URL:-}
+      # Mirrors docker/base/install.sh minus the server bits (nginx, runit,
+      # php-fpm config, New Relic): same extensions, imagick built by pecl
+      # against the project's ImageMagick 7 package, wkhtmltopdf, pngquant.
       dockerfile_inline: |
-        ARG PHP_VERSION
-        FROM php:$${PHP_VERSION}-cli-bookworm
+        ARG PHP_VERSION=missing
+        ARG PHP_DEBIAN=bookworm
+        FROM php:$${PHP_VERSION}-cli-$${PHP_DEBIAN}
         ARG PHP_EXTENSION_INSTALLER_VERSION
-        RUN if [ "$${PHP_EXTENSION_INSTALLER_VERSION}" = latest ]; then \
-              url=https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions; \
-            else \
-              url=https://github.com/mlocati/docker-php-extension-installer/releases/download/$${PHP_EXTENSION_INSTALLER_VERSION}/install-php-extensions; \
-            fi \
-            && curl -sSLfo /usr/local/bin/install-php-extensions "$$url" \
-            && chmod +x /usr/local/bin/install-php-extensions \
-            && install-php-extensions \
-                 amqp apcu bcmath calendar ftp imagick intl mbstring opcache \
-                 pcntl pdo_pgsql pdo_mysql sockets sodium sysvshm uuid zip @composer \
-            && apt-get update \
-            && apt-get install -y --no-install-recommends git unzip \
-            && rm -rf /var/lib/apt/lists/*
+        ARG PHP_EXTENSIONS
+        ARG IMAGEMAGICK_DEB_URL
+        ARG WKHTMLTOX_DEB_URL
+        RUN set -eux; \
+            : "$${PHP_EXTENSION_INSTALLER_VERSION:?build with make up}" \
+              "$${PHP_EXTENSIONS:?build with make up}" \
+              "$${IMAGEMAGICK_DEB_URL:?build with make up}" \
+              "$${WKHTMLTOX_DEB_URL:?build with make up}"; \
+            curl -sSLfo /usr/local/bin/install-php-extensions \
+              "https://github.com/mlocati/docker-php-extension-installer/releases/download/$${PHP_EXTENSION_INSTALLER_VERSION}/install-php-extensions"; \
+            chmod +x /usr/local/bin/install-php-extensions; \
+            install-php-extensions $${PHP_EXTENSIONS}; \
+            apt-get update; \
+            apt-get install -y --no-install-recommends git unzip pngquant $${PHPIZE_DEPS}; \
+            curl -sSLfo /tmp/imagemagick.deb "$${IMAGEMAGICK_DEB_URL}"; \
+            apt-get install -y --no-install-recommends /tmp/imagemagick.deb; \
+            pecl install imagick; \
+            docker-php-ext-enable imagick; \
+            curl -sSLfo /tmp/wkhtmltox.deb "$${WKHTMLTOX_DEB_URL}"; \
+            apt-get install -y --no-install-recommends /tmp/wkhtmltox.deb; \
+            apt-get purge -y --auto-remove $${PHPIZE_DEPS} $$(apt-mark showmanual | grep '\-dev$$' || true); \
+            rm -rf /var/lib/apt/lists/* /tmp/*.deb /tmp/pear
         ENV HOME=/tmp \
             COMPOSER_HOME=/tmp/.composer \
             COMPOSER_ALLOW_SUPERUSER=1
