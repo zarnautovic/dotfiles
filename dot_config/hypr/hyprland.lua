@@ -48,6 +48,11 @@ hl.env("HYPRCURSOR_SIZE", "24")
 -- Look & feel
 -- ---------------------------------------------------------------------------
 hl.config({
+    xwayland = {
+        -- Render Wine/X11 apps at native resolution on scaled monitors.
+        -- Adjust UI size inside the app instead of stretching its pixels.
+        force_zero_scaling = true,
+    },
     general = {
         gaps_in     = 5,
         gaps_out    = 10,
