@@ -7,6 +7,7 @@ docs
 {{- if ne .chezmoi.os "linux" }}
 .config/hypr
 .config/noctalia
+.config/MangoHud
 .local/bin/noctalia-osc-recolor
 # Sofascore PHP tools container + shims. Linux-only for now: on macOS the
 # shims would shadow Homebrew PHP on PATH (see dot_zshrc.tmpl).
