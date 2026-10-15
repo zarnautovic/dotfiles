@@ -105,7 +105,8 @@ hl.animation({ leaf = "border",     enabled = true, speed = 6, bezier = "default
 -- ---------------------------------------------------------------------------
 hl.config({
     input = {
-        kb_layout    = "us",
+        kb_layout    = "hr",
+        kb_variant   = "us", -- US layout; čćšđž via AltGr on HR key positions
         follow_mouse = 1,
         sensitivity  = 0,
         touchpad = {
